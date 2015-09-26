@@ -1419,6 +1419,8 @@ submitFrame = libovr.ovr_SubmitFrame
 #
 # OVR_PUBLIC_FUNCTION(ovrFrameTiming) ovr_GetFrameTiming(ovrHmd hmd, unsigned int frameIndex);
 getFrameTiming = libovr.ovr_GetFrameTiming
+getFrameTiming.restype = FrameTiming
+getFrameTiming.argtypes = [Hmd, ctypes.c_uint]
 
 # Returns global, absolute high-resolution time in seconds.
 #
@@ -1721,6 +1723,119 @@ createMirrorTextureGL.argtypes = [Hmd, GLuint, ctypes.c_int, ctypes.c_int,
 
 ### END Declarations from C header file OVR_CAPI_GL.h  ###
 
+
+### BEGIN Declarations from C header file OVR_CAPI_Util.h  ###
+
+
+# Enumerates modifications to the projection matrix based on the application's needs.
+#
+# \see ovrMatrix4f_Projection
+#
+ProjectionModifier = ENUM_TYPE
+# Use for generating a default projection matrix that is:
+# * Left-handed.
+# * Near depth values stored in the depth buffer are smaller than far depth values.
+# * Both near and far are explicitly defined.
+# * With a clipping range that is (0 to w).
+ovrProjection_None = 0x00
+# Enable if using right-handed transformations in your application.
+ovrProjection_RightHanded = 0x01
+# After the projection transform is applied, far values stored in the depth buffer will be less than closer depth values.
+# NOTE: Enable only if the application is using a floating-point depth buffer for proper precision.
+ovrProjection_FarLessThanNear = 0x02
+# When this flag is used, the zfar value pushed into ovrMatrix4f_Projection() will be ignored
+# NOTE: Enable only if ovrProjection_FarLessThanNear is also enabled where the far clipping plane will be pushed to infinity.
+ovrProjection_FarClipAtInfinity = 0x04
+# Enable if the application is rendering with OpenGL and expects a projection matrix with a clipping range of (-w to w).
+# Ignore this flag if your application already handles the conversion from D3D range (0 to w) to OpenGL.
+ovrProjection_ClipRangeOpenGL = 0x08
+
+
+# Used to generate projection from ovrEyeDesc::Fov.
+#
+# \param[in] fov Specifies the ovrFovPort to use.
+# \param[in] znear Distance to near Z limit.
+# \param[in] zfar Distance to far Z limit.
+# \param[in] projectionModFlags A combination of the ovrProjectionModifier flags.
+#
+# \return Returns the calculated projection matrix.
+# 
+# \see ovrProjectionModifier
+#
+# OVR_PUBLIC_FUNCTION(ovrMatrix4f) ovrMatrix4f_Projection(ovrFovPort fov, float znear, float zfar, unsigned int projectionModFlags);
+matrix4f_Projection = libovr.ovrMatrix4f_Projection
+
+
+# Extracts the required data from the result of ovrMatrix4f_Projection.
+#
+# \param[in] projection Specifies the project matrix from which to extract ovrTimewarpProjectionDesc.
+# \param[in] projectionModFlags A combination of the ovrProjectionModifier flags.
+# \return Returns the extracted ovrTimewarpProjectionDesc.
+# \see ovrTimewarpProjectionDesc
+#
+# OVR_PUBLIC_FUNCTION(ovrTimewarpProjectionDesc) ovrTimewarpProjectionDesc_FromProjection(ovrMatrix4f projection, unsigned int projectionModFlags);
+timewarpProjectionDesc_FromProjection = libovr.ovrTimewarpProjectionDesc_FromProjection
+# 
+
+# Generates an orthographic sub-projection.
+#
+# Used for 2D rendering, Y is down.
+#
+# \param[in] projection The perspective matrix that the orthographic matrix is derived from.
+# \param[in] orthoScale Equal to 1.0f / pixelsPerTanAngleAtCenter.
+# \param[in] orthoDistance Equal to the distance from the camera in meters, such as 0.8m.
+# \param[in] hmdToEyeViewOffsetX Specifies the offset of the eye from the center.
+#
+# \return Returns the calculated projection matrix.
+#
+# OVR_PUBLIC_FUNCTION(ovrMatrix4f) ovrMatrix4f_OrthoSubProjection(ovrMatrix4f projection, ovrVector2f orthoScale,
+#                                                                 float orthoDistance, float hmdToEyeViewOffsetX);
+matrix4f_OrthoSubProjection = libovr.ovrMatrix4f_OrthoSubProjection
+
+
+
+# Computes offset eye poses based on headPose returned by ovrTrackingState.
+#
+# \param[in] headPose Indicates the HMD position and orientation to use for the calculation.
+# \param[in] hmdToEyeViewOffset Can be ovrEyeRenderDesc.HmdToEyeViewOffset returned from 
+#            ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average 
+#            of the two vectors for both eyes.
+# \param[out] outEyePoses If outEyePoses are used for rendering, they should be passed to 
+#             ovr_SubmitFrame in ovrLayerEyeFov::RenderPose or ovrLayerEyeFovDepth::RenderPose.
+#
+# OVR_PUBLIC_FUNCTION(void) ovr_CalcEyePoses(ovrPosef headPose,
+#                                            const ovrVector3f hmdToEyeViewOffset[2],
+#                                            ovrPosef outEyePoses[2]);
+libovr.ovr_CalcEyePoses.restype = None
+libovr.ovr_CalcEyePoses.argtypes = [Posef, Vector3f * 2, Posef * 2]
+def calcEyePoses(headPose, hmdToEyeViewOffset, outEyePoses):
+    libovr.ovr_CalcEyePoses(headPose, hmdToEyeViewOffset, outEyePoses)
+
+
+# Returns the predicted head pose in outHmdTrackingState and offset eye poses in outEyePoses. 
+#
+# This is a thread-safe function where caller should increment frameIndex with every frame
+# and pass that index where applicable to functions called on the rendering thread.
+# Assuming outEyePoses are used for rendering, it should be passed as a part of ovrLayerEyeFov.
+# The caller does not need to worry about applying HmdToEyeViewOffset to the returned outEyePoses variables.
+#
+# \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+# \param[in]  frameIndex Specifies the targeted frame index, or 0 to refer to one frame after 
+#             the last time ovr_SubmitFrame was called.
+# \param[in]  hmdToEyeViewOffset Can be ovrEyeRenderDesc.HmdToEyeViewOffset returned from 
+#             ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average 
+#             of the two vectors for both eyes.
+# \param[out] outEyePoses The predicted eye poses.
+# \param[out] outHmdTrackingState The predicted ovrTrackingState. May be NULL, in which case it is ignored.
+#
+# OVR_PUBLIC_FUNCTION(void) ovr_GetEyePoses(ovrHmd hmd, unsigned int frameIndex,
+#                                              const ovrVector3f hmdToEyeViewOffset[2],
+#                                              ovrPosef outEyePoses[2],
+#                                              ovrTrackingState* outHmdTrackingState);
+getEyePoses = libovr.ovr_GetEyePoses
+
+
+### END Declarations from C header file OVR_CAPI_Util.h  ###
 
 
 
