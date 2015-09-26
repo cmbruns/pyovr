@@ -63,6 +63,10 @@ class Vector2i(ctypes.Structure):
         ("y", ctypes.c_int), # 
     ]
     
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
     def __repr__(self):
         return "Vector2i(%d, %d)" % (self.x, self.y)
 
@@ -77,6 +81,10 @@ class Sizei(ctypes.Structure):
         ("h", ctypes.c_int),
     ]
     
+    def __init__(self, w=0, h=0):
+        self.w = w
+        self.h = h
+
     def __repr__(self):
         return "Sizei(%d, %d)" % (self.w, self.h)
 
@@ -93,6 +101,10 @@ class Recti(ctypes.Structure):
         ("Size", Sizei), # ovrSizei    Size;
     ]
     
+    def __init__(self, x=0, y=0, w=0, h=0):
+        self.Pos.value = Vector2i(x, y)
+        self.Size.value = Sizei(w, h)
+
     def __repr__(self):
         return "Recti(Pos=%s, Size=%s)" % (self.Pos, self.Size)
 
@@ -1316,6 +1328,8 @@ getFovTextureSize.argtypes = [Hmd, EyeType, FovPort, ctypes.c_float]
 # OVR_PUBLIC_FUNCTION(ovrEyeRenderDesc) ovr_GetRenderDesc(ovrHmd hmd,
 #                                                            ovrEyeType eyeType, ovrFovPort fov);
 getRenderDesc = libovr.ovr_GetRenderDesc
+getRenderDesc.restype = EyeRenderDesc
+getRenderDesc.argtypes = [Hmd, EyeType, FovPort]
 
 # Submits layers for distortion and display.
 #

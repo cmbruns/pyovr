@@ -37,14 +37,20 @@ class RiftTriangle():
         ovr.initialize(None)
         self.hmd, luid = ovr.create()
         self.hmdDesc = ovr.getHmdDesc(self.hmd)
+        # print "Rift screen size = ", self.hmdDesc.Resolution        
         ovr.configureTracking(self.hmd, 
             ovr.TrackingCap_Orientation | # supported capabilities
             ovr.TrackingCap_MagYawCorrection |
             ovr.TrackingCap_Position, 
             0) # required capabilities
-        # 1b) TODO: Compute FOV and texture sizes 
+        # 1ba) TODO: Compute FOV
+        eyeRenderDescL = ovr.getRenderDesc(self.hmd, ovr.Eye_Left,
+                self.hmdDesc.DefaultEyeFov[0])
+        eyeRenderDescR = ovr.getRenderDesc(self.hmd, ovr.Eye_Right,
+                self.hmdDesc.DefaultEyeFov[1])
         # Configure Stereo settings.
         # Use a single shared texture for simplicity
+        # 1bb) Compute texture sizes
         recommenedTex0Size = ovr.getFovTextureSize(self.hmd, ovr.Eye_Left, 
                 self.hmdDesc.DefaultEyeFov[0], 1.0)
         recommenedTex1Size = ovr.getFovTextureSize(self.hmd, ovr.Eye_Right,
@@ -52,14 +58,31 @@ class RiftTriangle():
         bufferSize = ovr.Sizei()
         bufferSize.w  = recommenedTex0Size.w + recommenedTex1Size.w
         bufferSize.h = max ( recommenedTex0Size.h, recommenedTex1Size.h )
-        print "Recommended buffer size = ", bufferSize
-
-        # Maybe need to set up OpenGL context first...
+        # print "Recommended buffer size = ", bufferSize
+        # NOTE: We need to have set up OpenGL context before this point...
         # 1c) Allocate SwapTextureSets
         self.pTextureSet = ovr.createSwapTextureSetGL(self.hmd,
                 GL_SRGB8_ALPHA8, bufferSize.w, bufferSize.h)
-        print self.pTextureSet
-        # print "Rift screen size = ", self.hmdDesc.Resolution        
+        # print self.pTextureSet
+
+        # Initialize VR structures, filling out description.
+        eyeRenderDesc = [None, None]
+        hmdToEyeViewOffset = [None, None]
+        eyeRenderDesc[0] = ovr.getRenderDesc(self.hmd, ovr.Eye_Left, self.hmdDesc.DefaultEyeFov[0])
+        eyeRenderDesc[1] = ovr.getRenderDesc(self.hmd, ovr.Eye_Right, self.hmdDesc.DefaultEyeFov[1])
+        hmdToEyeViewOffset[0] = eyeRenderDesc[0].HmdToEyeViewOffset
+        hmdToEyeViewOffset[1] = eyeRenderDesc[1].HmdToEyeViewOffset
+        # Initialize our single full screen Fov layer.
+        layer = ovr.LayerEyeFov()
+        layer.Header.Type      = ovr.LayerType_EyeFov
+        layer.Header.Flags     = 0
+        layer.ColorTexture[0]  = self.pTextureSet
+        layer.ColorTexture[1]  = self.pTextureSet
+        layer.Fov[0]           = eyeRenderDesc[0].Fov
+        layer.Fov[1]           = eyeRenderDesc[1].Fov
+        layer.Viewport[0]      = ovr.Recti(0, 0,                bufferSize.w / 2, bufferSize.h)
+        layer.Viewport[1]      = ovr.Recti(bufferSize.w / 2, 0, bufferSize.w / 2, bufferSize.h)
+        # ld.RenderPose is updated later per frame.
 
     def dispose_hmd(self):
         "Release resources for Oculus Rift tracking and rendering"
