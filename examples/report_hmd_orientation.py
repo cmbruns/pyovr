@@ -1,3 +1,5 @@
+#!/bin/env python
+
 import time
 import sys
 
@@ -24,3 +26,4 @@ while True:
     time.sleep(0.500)
 ovr.destroy(hmd)
 ovr.shutdown()
+

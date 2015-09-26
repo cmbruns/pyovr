@@ -16,7 +16,7 @@ setup(
     author_email = "cmbruns@rotatingpenguin.com",
     description = ("ctypes-based Python bindings for the Oculus Rift SDK (libOVR)"),
     keywords = "ovr oculus rift",
-    url = "https://bitbucket.org/duangle/python-ovr",
+    url = "https://github.com/cmbruns/pyovr",
     packages=['ovr'],
     ],
 )

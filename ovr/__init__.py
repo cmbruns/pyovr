@@ -21,6 +21,7 @@ except:
 # Selected definitions from OVR_ErrorCode.h:
 
 Result = ctypes.c_int32 # OVR_ErrorCode.h line 23
+Success = 0
 
 def SUCCESS(result):
     return result >= 0
