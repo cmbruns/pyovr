@@ -805,6 +805,7 @@ class ErrorInfo(ctypes.Structure):
 # \see ovrErrorInfo
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_GetLastErrorInfo(ovrErrorInfo* errorInfo);
+getLastErrorInfo = libovr.ovr_GetLastErrorInfo
 
 
 # Returns the version string representing the LibOVRRT version.
@@ -835,6 +836,7 @@ class ErrorInfo(ctypes.Structure):
 # \see ovrLogLevel, ovrLogCallback
 #
 # OVR_PUBLIC_FUNCTION(int) ovr_TraceMessage(int level, const char* message);
+traceMessage = libovr.ovr_TraceMessage
 
 
 #-------------------------------------------------------------------------------------
@@ -915,6 +917,7 @@ def destroy(hmd):
 # \see ovrHmdCaps
 #
 # OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetEnabledCaps(ovrHmd hmd);
+getEnabledCaps = libovr.ovr_GetEnabledCaps
 
 
 # Modifies capability bits described by ovrHmdCaps that can be modified,
@@ -926,6 +929,7 @@ def destroy(hmd):
 # \see ovrHmdCaps
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_SetEnabledCaps(ovrHmd hmd, unsigned int hmdCaps);
+setEnabledCaps = libovr.ovr_SetEnabledCaps
 
 #@}
 
@@ -977,6 +981,7 @@ configureTracking = libovr.ovr_ConfigureTracking
 # \param[in] hmd Specifies an ovrHmd previously returned by ovr_Create.
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_RecenterPose(ovrHmd hmd);
+recenterPose = libovr.ovr_RecenterPose
 
 
 # Returns tracking state reading based on the specified absolute system time.
@@ -1010,6 +1015,7 @@ getTrackingState.argtypes = [Hmd, ctypes.c_double]
 # \see ovrControllerType
 #
 # OVR_PUBLIC_FUNCTION(ovrResult) ovr_GetInputState(ovrHmd hmd, unsigned int controllerTypeMask, ovrInputState* inputState);
+getInputState = libovr.ovr_GetInputState
 
 
 # Turns on vibration of the given controller.
@@ -1031,6 +1037,7 @@ getTrackingState.argtypes = [Hmd, ctypes.c_double]
 # 
 # OVR_PUBLIC_FUNCTION(ovrResult) ovr_SetControllerVibration(ovrHmd hmd, unsigned int controllerTypeMask,
 #                                                             float frequency, float amplitude);
+setControllerVibration = libovr.ovr_SetControllerVibration
 
 #@}
 
@@ -1250,6 +1257,7 @@ class Layer_Union(ctypes.Union):
 # \see ovr_CreateSwapTextureSetD3D11, ovr_CreateSwapTextureSetGL
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_DestroySwapTextureSet(ovrHmd hmd, ovrSwapTextureSet* textureSet);
+destroySwapTextureSet = libovr.ovr_DestroySwapTextureSet
 
 
 # Destroys a mirror texture previously created by one of the mirror texture creation functions.
@@ -1260,6 +1268,7 @@ class Layer_Union(ctypes.Union):
 # \see ovr_CreateMirrorTextureD3D11, ovr_CreateMirrorTextureGL
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_DestroyMirrorTexture(ovrHmd hmd, ovrTexture* mirrorTexture);
+destroyMirrorTexture = libovr.ovr_DestroyMirrorTexture
 
 
 # Calculates the recommended viewport size for rendering a given eye within the HMD
@@ -1280,6 +1289,7 @@ class Layer_Union(ctypes.Union):
 #
 # OVR_PUBLIC_FUNCTION(ovrSizei) ovr_GetFovTextureSize(ovrHmd hmd, ovrEyeType eye, ovrFovPort fov,
 #                                                        float pixelsPerDisplayPixel);
+getFovTextureSize = libovr.ovr_GetFovTextureSize
 
 # Computes the distortion viewport, view adjust, and other rendering parameters for
 # the specified eye.
@@ -1293,6 +1303,7 @@ class Layer_Union(ctypes.Union):
 #
 # OVR_PUBLIC_FUNCTION(ovrEyeRenderDesc) ovr_GetRenderDesc(ovrHmd hmd,
 #                                                            ovrEyeType eyeType, ovrFovPort fov);
+getRenderDesc = libovr.ovr_GetRenderDesc
 
 # Submits layers for distortion and display.
 #
@@ -1356,6 +1367,7 @@ class Layer_Union(ctypes.Union):
 # OVR_PUBLIC_FUNCTION(ovrResult) ovr_SubmitFrame(ovrHmd hmd, unsigned int frameIndex,
 #                                                   const ovrViewScaleDesc* viewScaleDesc,
 #                                                   ovrLayerHeader const * const * layerPtrList, unsigned int layerCount);
+submitFrame = libovr.ovr_SubmitFrame
 #@}
 
 
@@ -1380,6 +1392,7 @@ class Layer_Union(ctypes.Union):
 # \see ovrFrameTiming
 #
 # OVR_PUBLIC_FUNCTION(ovrFrameTiming) ovr_GetFrameTiming(ovrHmd hmd, unsigned int frameIndex);
+getFrameTiming = libovr.ovr_GetFrameTiming
 
 # Returns global, absolute high-resolution time in seconds.
 #
@@ -1445,6 +1458,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # This may be removed in a future SDK version.
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_ResetBackOfHeadTracking(ovrHmd hmd);
+resetBackOfHeadTracking = libovr.ovr_ResetBackOfHeadTracking
 
 
 # Should be called when a tracking camera is moved.
@@ -1452,6 +1466,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # This may be removed in a future SDK version.
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_ResetMulticameraTracking(ovrHmd hmd);
+resetMulticameraTracking = libovr.ovr_ResetMulticameraTracking
 
 
 
@@ -1471,6 +1486,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns the property interpreted as a boolean value. Returns defaultVal if
 #         the property doesn't exist.
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_GetBool(ovrHmd hmd, const char* propertyName, ovrBool defaultVal);
+getBool = libovr.ovr_GetBool
 
 # Writes or creates a boolean property.
 # If the property wasn't previously a boolean property, it is changed to a boolean property.
@@ -1481,6 +1497,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns true if successful, otherwise false. A false result should only occur if the property
 #         name is empty or if the property is read-only.
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetBool(ovrHmd hmd, const char* propertyName, ovrBool value);
+setBool = libovr.ovr_SetBool
 
 
 # Reads an integer property.
@@ -1491,6 +1508,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns the property interpreted as an integer value. Returns defaultVal if
 #         the property doesn't exist.
 # OVR_PUBLIC_FUNCTION(int) ovr_GetInt(ovrHmd hmd, const char* propertyName, int defaultVal);
+getInt = libovr.ovr_GetInt
 
 # Writes or creates an integer property.
 #
@@ -1502,6 +1520,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns true if successful, otherwise false. A false result should only occur if the property
 #         name is empty or if the property is read-only.
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetInt(ovrHmd hmd, const char* propertyName, int value);
+setInt = libovr.ovr_SetInt
 
 
 # Reads a float property.
@@ -1512,6 +1531,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns the property interpreted as an float value. Returns defaultVal if
 #         the property doesn't exist.
 # OVR_PUBLIC_FUNCTION(float) ovr_GetFloat(ovrHmd hmd, const char* propertyName, float defaultVal);
+getFloat = libovr.ovr_GetFloat
 
 # Writes or creates a float property.
 # If the property wasn't previously a float property, it's changed to a float property.
@@ -1522,6 +1542,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns true if successful, otherwise false. A false result should only occur if the property
 #         name is empty or if the property is read-only.
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetFloat(ovrHmd hmd, const char* propertyName, float value);
+setFloat = libovr.ovr_SetFloat
 
 
 # Reads a float array property.
@@ -1533,6 +1554,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns the number of elements read, or 0 if property doesn't exist or is empty.
 # OVR_PUBLIC_FUNCTION(unsigned int) ovr_GetFloatArray(ovrHmd hmd, const char* propertyName,
 #                                                        float values[], unsigned int valuesCapacity);
+getFloatArray = libovr.ovr_GetFloatArray
 
 # Writes or creates a float array property.
 #
@@ -1544,6 +1566,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 #         name is empty or if the property is read-only.
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetFloatArray(ovrHmd hmd, const char* propertyName,
 #                                                   const float values[], unsigned int valuesSize);
+setFloatArray = libovr.ovr_SetFloatArray
 
 
 # Reads a string property.
@@ -1557,6 +1580,7 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 #         until the HMD is destroyed, whichever occurs first.
 # OVR_PUBLIC_FUNCTION(const char*) ovr_GetString(ovrHmd hmd, const char* propertyName,
 #                                                   const char* defaultVal);
+getString = libovr.ovr_GetString
 
 # Writes or creates a string property.
 # Strings are UTF8-encoded and null-terminated.
@@ -1567,6 +1591,8 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns true if successful, otherwise false. A false result should only occur if the property
 #         name is empty or if the property is read-only.
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetString(ovrHmd hmd, const char* propertyName,
+#                                              const char* value);
+setString = libovr.ovr_SetString
 
 
 # Run test program
