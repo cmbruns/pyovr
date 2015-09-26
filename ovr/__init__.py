@@ -856,6 +856,8 @@ class ErrorInfo(ctypes.Structure):
 #         no HMD is present.
 #
 # OVR_PUBLIC_FUNCTION(ovrHmdDesc) ovr_GetHmdDesc(ovrHmd hmd);
+getHmdDesc = libovr.ovr_GetHmdDesc
+getHmdDesc.restype = HmdDesc
 
 
 # OVR_PUBLIC_FUNCTION(ovrResult) ovr_Create(ovrHmd* pHmd, ovrGraphicsLuid* pLuid);
@@ -963,6 +965,8 @@ def destroy(hmd):
 #
 # OVR_PUBLIC_FUNCTION(ovrResult) ovr_ConfigureTracking(ovrHmd hmd, unsigned int requestedTrackingCaps,
 #                                                      unsigned int requiredTrackingCaps);
+configureTracking = libovr.ovr_ConfigureTracking
+
 
 # Re-centers the sensor position and orientation.
 #
@@ -990,6 +994,9 @@ def destroy(hmd):
 # \see ovrTrackingState, ovr_GetEyePoses, ovr_GetTimeInSeconds
 #
 # OVR_PUBLIC_FUNCTION(ovrTrackingState) ovr_GetTrackingState(ovrHmd hmd, double absTime);
+getTrackingState = libovr.ovr_GetTrackingState
+getTrackingState.restype = TrackingState
+getTrackingState.argtypes = [Hmd, ctypes.c_double]
 
 
 # Returns the most recent input state for controllers, without positional tracking info.
@@ -1383,6 +1390,9 @@ class Layer_Union(ctypes.Union):
 # \see ovrPoseStatef, ovrSensorData, ovrFrameTiming
 #
 # OVR_PUBLIC_FUNCTION(double) ovr_GetTimeInSeconds();
+getTimeInSeconds = libovr.ovr_GetTimeInSeconds
+getTimeInSeconds.restype = ctypes.c_double
+
 
 # Performance HUD enables the HMD user to see information critical to
 # the real-time operation of the VR application such as latency timing,
@@ -1557,29 +1567,12 @@ DebugHudStereo_Count               = 4  #< \internal Count of enumerated element
 # \return Returns true if successful, otherwise false. A false result should only occur if the property
 #         name is empty or if the property is read-only.
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetString(ovrHmd hmd, const char* propertyName,
-#                                               const char* value);
-
-
-# functions:
-
-configureTracking = libovr.ovr_ConfigureTracking
-
-getHmdDesc = libovr.ovr_GetHmdDesc
-getHmdDesc.restype = HmdDesc
-
-getTimeInSeconds = libovr.ovr_GetTimeInSeconds
-getTimeInSeconds.restype = ctypes.c_double
-
-getTrackingState = libovr.ovr_GetTrackingState
-getTrackingState.restype = TrackingState
-getTrackingState.argtypes = [Hmd, ctypes.c_double]
-
 
 
 # Run test program
 if __name__ == "__main__":
     # Transcribed from initial example at 
-    # https:#developer.oculus.com/documentation/pcsdk/latest/concepts/dg-sensor/
+    # https://developer.oculus.com/documentation/pcsdk/latest/concepts/dg-sensor/
     initialize(None)
     hmd, luid = create()
     desc = getHmdDesc(hmd)
