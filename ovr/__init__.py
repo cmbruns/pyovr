@@ -376,19 +376,19 @@ class FrameTiming(ctypes.Structure):
     """
     _pack_ = 8
     _fields_ = [
-    # A point in time when the middle of the screen will be displayed. For global shutter,
-    # this will be the display time. For rolling shutter this is a point at which half the image has
-    # been displayed. This value can be passed as an absolute time to ovr_GetTrackingState
-    # to get the best predicted pose for rendering the scene.
-    ("DisplayMidpointSeconds", ctypes.c_double), # double      DisplayMidpointSeconds;
-    # Display interval between the frames. This will generally be 1 / RefreshRate of the HMD;
-    # however, it may vary slightly during runtime based on video cart scan-out timing.
-    ("FrameIntervalSeconds", ctypes.c_double), # double      FrameIntervalSeconds;
-    # Application frame index for which we requested timing.
-    ("AppFrameIndex", ctypes.c_uint), # unsigned    AppFrameIndex;
-    # HW display frame index that we expect this application frame will hit; this is the frame that
-    # will be displayed at DisplayMidpointSeconds. This value is monotonically increasing with each v-sync.
-    ("DisplayFrameIndex", ctypes.c_uint), # unsigned    DisplayFrameIndex;
+        # A point in time when the middle of the screen will be displayed. For global shutter,
+        # this will be the display time. For rolling shutter this is a point at which half the image has
+        # been displayed. This value can be passed as an absolute time to ovr_GetTrackingState
+        # to get the best predicted pose for rendering the scene.
+        ("DisplayMidpointSeconds", ctypes.c_double), # double      DisplayMidpointSeconds;
+        # Display interval between the frames. This will generally be 1 / RefreshRate of the HMD;
+        # however, it may vary slightly during runtime based on video cart scan-out timing.
+        ("FrameIntervalSeconds", ctypes.c_double), # double      FrameIntervalSeconds;
+        # Application frame index for which we requested timing.
+        ("AppFrameIndex", ctypes.c_uint), # unsigned    AppFrameIndex;
+        # HW display frame index that we expect this application frame will hit; this is the frame that
+        # will be displayed at DisplayMidpointSeconds. This value is monotonically increasing with each v-sync.
+        ("DisplayFrameIndex", ctypes.c_uint), # unsigned    DisplayFrameIndex;
     ]
 
 
