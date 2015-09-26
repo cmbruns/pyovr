@@ -778,7 +778,7 @@ def shutdown():
     #
     # \see ovr_Initialize
     """
-    libovr.ovr_shutdown()
+    libovr.ovr_Shutdown()
 
 
 # Provides information about the last error.
