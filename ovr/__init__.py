@@ -18,7 +18,11 @@ except:
     raise
 
 
-# Selected definitions from OVR_ErrorCode.h:
+ENUM_TYPE = ctypes.c_uint32 # Hopefully a close enough guess...
+
+
+### BEGIN (selected) Declarations from C header file OVR_ErrorCode.h ###
+
 
 Result = ctypes.c_int32 # OVR_ErrorCode.h line 23
 Success = 0
@@ -30,10 +34,11 @@ def FAILURE(result):
     return not SUCCESS(result)
 
 
-ENUM_TYPE = ctypes.c_uint32
+### END Declarations from C header file OVR_ErrorCode.h ###
 
 
-### Below is translation of relevant declarations from C header file OVR_CAPI_0_7_0.h
+### BEGIN Declarations from C header file OVR_CAPI_0_7_0.h ###
+
 
 # I remove the "ovr_" prefix from class names, because these will be in the "ovr" package.
 # So, for example, "ovr_Vector2i" would become "ovr.Vector2i"
@@ -983,6 +988,8 @@ configureTracking = libovr.ovr_ConfigureTracking
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_RecenterPose(ovrHmd hmd);
 recenterPose = libovr.ovr_RecenterPose
+recenterPose.restype = None
+recenterPose.argtypes = [Hmd]
 
 
 # Returns tracking state reading based on the specified absolute system time.
@@ -1259,6 +1266,8 @@ class Layer_Union(ctypes.Union):
 #
 # OVR_PUBLIC_FUNCTION(void) ovr_DestroySwapTextureSet(ovrHmd hmd, ovrSwapTextureSet* textureSet);
 destroySwapTextureSet = libovr.ovr_DestroySwapTextureSet
+destroySwapTextureSet.restype = None
+destroySwapTextureSet.argtupes = [Hmd, ctypes.POINTER(SwapTextureSet)]
 
 
 # Destroys a mirror texture previously created by one of the mirror texture creation functions.
@@ -1291,6 +1300,8 @@ destroyMirrorTexture = libovr.ovr_DestroyMirrorTexture
 # OVR_PUBLIC_FUNCTION(ovrSizei) ovr_GetFovTextureSize(ovrHmd hmd, ovrEyeType eye, ovrFovPort fov,
 #                                                        float pixelsPerDisplayPixel);
 getFovTextureSize = libovr.ovr_GetFovTextureSize
+getFovTextureSize.restype = Sizei
+getFovTextureSize.argtypes = [Hmd, EyeType, FovPort, ctypes.c_float]
 
 # Computes the distortion viewport, view adjust, and other rendering parameters for
 # the specified eye.
@@ -1594,6 +1605,110 @@ getString = libovr.ovr_GetString
 # OVR_PUBLIC_FUNCTION(ovrBool) ovr_SetString(ovrHmd hmd, const char* propertyName,
 #                                              const char* value);
 setString = libovr.ovr_SetString
+
+
+### BEGIN Declarations from C header file OVR_CAPI_0_7_0.h ###
+
+
+### BEGIN Declarations from C header file OVR_CAPI_GL.h  ###
+
+
+GLuint = ctypes.c_uint
+
+
+
+class GLTextureData(ctypes.Structure):
+    "Used to pass GL eye texture data to ovr_EndFrame."
+    _fields_ = [
+        ("Header", TextureHeader), # ovrTextureHeader Header;    #< General device settings.
+        ("TexId", GLuint), # GLuint           TexId;     #< The OpenGL name for this texture.
+    ]
+
+
+class GLTexture(ctypes.Union):
+    "Contains OpenGL-specific texture information."
+    _fields_ = [
+        ("Texture", Texture), # ovrTexture       Texture;   #< General device settings.
+        ("OGL", GLTextureData), # ovrGLTextureData OGL;       #< OpenGL-specific settings.
+    ]
+
+
+# OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateSwapTextureSetGL(ovrHmd hmd, GLuint format,
+#                                                              int width, int height,
+#                                                              ovrSwapTextureSet** outTextureSet);
+libovr.ovr_CreateSwapTextureSetGL.restype = Result
+libovr.ovr_CreateSwapTextureSetGL.argtypes = [Hmd, GLuint, ctypes.c_int, ctypes.c_int, 
+        ctypes.POINTER(ctypes.POINTER(SwapTextureSet))]
+def createSwapTextureSetGL(hmd, format, width, height):
+    """
+    # Creates a Texture Set suitable for use with OpenGL.
+    #
+    # Multiple calls to ovr_CreateSwapTextureSetD3D11 for the same ovrHmd is supported, but applications
+    # cannot rely on switching between ovrSwapTextureSets at runtime without a performance penalty.
+    #
+    # \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+    # \param[in]  format Specifies the texture format.
+    # \param[in]  width Specifies the requested texture width.
+    # \param[in]  height Specifies the requested texture height.
+    # \param[out] outTextureSet Specifies the created ovrSwapTextureSet, which will be valid upon a successful return value, else it will be NULL.
+    #             This texture set must be eventually destroyed via ovr_DestroySwapTextureSet before destroying the HMD with ovr_Destroy.
+    #
+    # \return Returns an ovrResult indicating success or failure. In the case of failure, use 
+    #         ovr_GetLastErrorInfo to get more information.
+    #
+    # \note The \a format provided should be thought of as the format the distortion compositor will use when reading the contents of the
+    # texture. To that end, it is highly recommended that the application requests swap-texture-set formats that are in sRGB-space (e.g. GL_SRGB8_ALPHA8)
+    # as the distortion compositor does sRGB-correct rendering. Furthermore, the app should then make sure "glEnable(GL_FRAMEBUFFER_SRGB);"
+    # is called before rendering into these textures. Even though it is not recommended, if the application would like to treat the
+    # texture as a linear format and do linear-to-gamma conversion in GLSL, then the application can avoid calling "glEnable(GL_FRAMEBUFFER_SRGB);",
+    # but should still pass in GL_SRGB8_ALPHA8 (not GL_RGBA) for the \a format. Failure to do so will cause the distortion compositor
+    # to apply incorrect gamma conversions leading to gamma-curve artifacts.
+    #
+    # \see ovr_DestroySwapTextureSet
+    """
+    outTextureSet = ctypes.POINTER(SwapTextureSet)()
+    retval = libovr.ovr_CreateSwapTextureSetGL(hmd, format, width, height, byref(outTextureSet))
+    if FAILURE(retval):
+        return None
+    return outTextureSet
+
+
+# Creates a Mirror Texture which is auto-refreshed to mirror Rift contents produced by this application.
+#
+# A second call to ovr_CreateMirrorTextureGL for a given ovrHmd  before destroying the first one
+# is not supported and will result in an error return.
+#
+# \param[in]  hmd Specifies an ovrHmd previously returned by ovr_Create.
+# \param[in]  format Specifies the texture format.
+# \param[in]  width Specifies the requested texture width.
+# \param[in]  height Specifies the requested texture height.
+# \param[out] outMirrorTexture Specifies the created ovrSwapTexture, which will be valid upon a successful return value, else it will be NULL.
+#             This texture must be eventually destroyed via ovr_DestroyMirrorTexture before destroying the HMD with ovr_Destroy.
+#
+# \return Returns an ovrResult indicating success or failure. In the case of failure, use 
+#         ovr_GetLastErrorInfo to get more information.
+#
+# \note The \a format provided should be thought of as the format the distortion compositor will use when writing into the mirror
+# texture. It is highly recommended that mirror textures are requested as GL_SRGB_ALPHA8 because the distortion compositor
+# does sRGB-correct rendering. If the application requests a non-sRGB format (e.g. GL_RGBA) as the mirror texture,
+# then the application might have to apply a manual linear-to-gamma conversion when reading from the mirror texture.
+# Failure to do so can result in incorrect gamma conversions leading to gamma-curve artifacts and color banding.
+#
+# \see ovr_DestroyMirrorTexture
+#
+# OVR_PUBLIC_FUNCTION(ovrResult) ovr_CreateMirrorTextureGL(ovrHmd hmd, GLuint format,
+#                                                             int width, int height,
+#                                                             ovrTexture** outMirrorTexture);
+createMirrorTextureGL = libovr.ovr_CreateMirrorTextureGL
+createMirrorTextureGL.restype = Result
+createMirrorTextureGL.argtypes = [Hmd, GLuint, ctypes.c_int, ctypes.c_int, 
+        ctypes.POINTER(ctypes.POINTER(Texture))]
+
+
+### END Declarations from C header file OVR_CAPI_GL.h  ###
+
+
+
 
 
 # Run test program
