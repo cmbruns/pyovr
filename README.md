@@ -2,9 +2,9 @@
 ### Python bindings for Oculus Rift SDK
 
 ## Installation
-* git clone https://github.com/cmbruns/pyovr.git
-* cd pyovr
-* python setup.py install
+- [ ] ```git clone https://github.com/cmbruns/pyovr.git```
+- [ ] ```cd pyovr```
+- [ ] ```python setup.py install```
 
 ## Use
 
