@@ -116,7 +116,7 @@ class RiftTriangle():
 
     def render_frame(self):
         "Paint one frame image during display loop"
-        # A) Display something to screen
+        # A) Display something to screen, for comparison to Rift
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(45.0, float(self.glut_window_width)/float(self.glut_window_height), 0.1, 100.0)
@@ -156,8 +156,8 @@ class RiftTriangle():
         glClearColor(0.5, 0.5, 1, 1)
         glClear(GL_COLOR_BUFFER_BIT)
         # TODO: remove orientation debug check
-        if self.frame_index % 1000 == 0:
-            ovr.recenterPose(self.hmd)
+        # if self.frame_index % 1000 == 0:
+        #     ovr.recenterPose(self.hmd)
         # Render Scene to Eye Buffers
         # 2b) TODO: Perform rendering for each eye in an engine-specific way, rendering into the current texture within the texture set. Current texture is identified by the ovrSwapTextureSet::CurrentIndex variable.
         for eye in range(2):
@@ -234,6 +234,7 @@ class RiftTriangle():
         glutDisplayFunc(self.render_frame)
         glutIdleFunc(self.render_frame)
         glutReshapeFunc(self.resize_console)
+        glutKeyboardFunc(self.key_press)
         # 
         glClearColor(0.2, 0.2, 0.5, 1)
         glMatrixMode(GL_PROJECTION)
@@ -246,6 +247,16 @@ class RiftTriangle():
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.fbo)
         # glEnable(GL_FRAMEBUFFER_SRGB_EXT) # redundant?
         print "framebuffer = ", self.fbo
+
+    def key_press(self, key, x, y):
+        if ord(key) == 27:
+            # print "Escape!"
+            if bool(glutLeaveMainLoop):
+                glutLeaveMainLoop()
+            else:
+                raise Exception("Application quit")
+        if key == "r":
+            ovr.recenterPose(self.hmd)
 
     def resize_console(self, width, height):
         if height == 0:
