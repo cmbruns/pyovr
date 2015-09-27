@@ -102,8 +102,10 @@ class Recti(ctypes.Structure):
     ]
     
     def __init__(self, x=0, y=0, w=0, h=0):
-        self.Pos.value = Vector2i(x, y)
-        self.Size.value = Sizei(w, h)
+        self.Pos.x = x
+        self.Pos.y = y
+        self.Size.w = w
+        self.Size.h = h
 
     def __repr__(self):
         return "Recti(Pos=%s, Size=%s)" % (self.Pos, self.Size)
@@ -1393,9 +1395,15 @@ getRenderDesc.argtypes = [Hmd, EyeType, FovPort]
 # OVR_PUBLIC_FUNCTION(ovrResult) ovr_SubmitFrame(ovrHmd hmd, unsigned int frameIndex,
 #                                                   const ovrViewScaleDesc* viewScaleDesc,
 #                                                   ovrLayerHeader const * const * layerPtrList, unsigned int layerCount);
-submitFrame = libovr.ovr_SubmitFrame
-#@}
-
+libovr.ovr_SubmitFrame.restype = Result
+libovr.ovr_SubmitFrame.argtypes = [Hmd, ctypes.c_uint, ctypes.POINTER(ViewScaleDesc), 
+        ctypes.POINTER(ctypes.POINTER(LayerHeader)), ctypes.c_uint]
+def submitFrame(hmd, frameIndex, viewScaleDesc, layerPtrList, layerCount):
+    lplp = ctypes.POINTER(LayerHeader)(layerPtrList)
+    libovr.ovr_SubmitFrame(hmd, frameIndex, 
+        byref(viewScaleDesc), 
+        byref(lplp), 
+        layerCount)
 
 
 #-------------------------------------------------------------------------------------
@@ -1685,7 +1693,7 @@ def createSwapTextureSetGL(hmd, format, width, height):
     outTextureSet = ctypes.POINTER(SwapTextureSet)()
     retval = libovr.ovr_CreateSwapTextureSetGL(hmd, format, width, height, byref(outTextureSet))
     if FAILURE(retval):
-        return None
+        raise Exception("Swap texture creation failed")
     return outTextureSet
 
 
