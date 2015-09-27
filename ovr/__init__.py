@@ -9,6 +9,7 @@ import ctypes
 from ctypes import byref
 import sys
 import textwrap
+import math
 
 # Load Oculus runtime library
 # Assumes Oculus Runtime 0.7 install on 32 bit windows
@@ -126,6 +127,17 @@ class Quatf(ctypes.Structure):
     
     def __repr__(self):
         return "Quatf(x=%f, y=%f, z=%f, w=%f)" % (self.x, self.y, self.z, self.w)
+
+    def getPitchYawRoll(self):
+        # shift to convention at https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+        q0 = self.w # rotation angle term
+        q1 = self.x
+        q2 = self.y
+        q3 = self.z
+        phi = math.atan2(2*q0*q1 + 2*q2*q3, 1 - 2*q1*q1 - 2*q2*q2) # pitch
+        theta = math.asin(2*q0*q2 - 2*q3*q1) # yaw
+        psi = math.atan2(2*q0*q3 + 2*q1*q2, 1 - 2*q2*q2 - 2*q3*q3) # roll
+        return phi, theta, psi
 
 
 # OVR_CAPI_0_7_0.h line 312
