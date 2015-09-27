@@ -15,6 +15,8 @@ class RiftTriangle():
     def __init__(self):
         self.hmd = None
         self.pTextureSet = None
+        self.isVisible = True
+        self.fbo = None
     
     def __enter__(self):
         "Initial set up of HMD and OpenGL"
@@ -30,7 +32,7 @@ class RiftTriangle():
         """
         Create resources for Oculus Rift tracking and rendering.
 
-        Initialize OpenGL first, before getting Rift textures.
+        NOTE: Initialize OpenGL first (elsewhere), before getting Rift textures here.
         """
         # 1) Initialize
         # 1a) Initialize Oculus SDK
@@ -43,11 +45,6 @@ class RiftTriangle():
             ovr.TrackingCap_MagYawCorrection |
             ovr.TrackingCap_Position, 
             0) # required capabilities
-        # 1ba) TODO: Compute FOV
-        eyeRenderDescL = ovr.getRenderDesc(self.hmd, ovr.Eye_Left,
-                self.hmdDesc.DefaultEyeFov[0])
-        eyeRenderDescR = ovr.getRenderDesc(self.hmd, ovr.Eye_Right,
-                self.hmdDesc.DefaultEyeFov[1])
         # Configure Stereo settings.
         # Use a single shared texture for simplicity
         # 1bb) Compute texture sizes
@@ -66,6 +63,7 @@ class RiftTriangle():
         # print self.pTextureSet
 
         # Initialize VR structures, filling out description.
+        # 1ba) Compute FOV
         eyeRenderDesc = (ovr.EyeRenderDesc * 2)()
         hmdToEyeViewOffset = (ovr.Vector3f * 2)()
         eyeRenderDesc[0] = ovr.getRenderDesc(self.hmd, ovr.Eye_Left, self.hmdDesc.DefaultEyeFov[0])
@@ -91,16 +89,57 @@ class RiftTriangle():
         if self.hmd is None:
             return
         # Get both eye poses simultaneously, with IPD offset already included.
+        # 2) Set up frame handling
+        # 2a) Use ovr_GetTrackingState and ovr_CalcEyePoses to compute eye poses needed for view rendering based on frame timing information
         ftiming  = ovr.getFrameTiming(self.hmd, 0)
         hmdState = ovr.getTrackingState(self.hmd, ftiming.DisplayMidpointSeconds)
         ovr.calcEyePoses(hmdState.HeadPose.ThePose, 
                 self.hmdToEyeViewOffset,
                 self.layer.RenderPose)
-        # 2) Set up frame handling
-        # 2a) TODO: Use ovr_GetTrackingState and ovr_CalcEyePoses to compute eye poses needed for view rendering based on frame timing information
-        # 2b) TODO: Perform rendering for each eye in an engine-specific way, rendering into the current texture within the texture set. Current texture is identified by the ovrSwapTextureSet::CurrentIndex variable.
-        # 2c) TODO: Call ovr_SubmitFrame, passing swap texture set(s) from the previous step within a ovrLayerEyeFov structure. Although a single layer is required to submit a frame, you can use multiple layers and layer types for advanced rendering. ovr_SubmitFrame passes layer textures to the compositor which handles distortion, timewarp, and GPU synchronization before presenting it to the headset. 
-        # 2d) TODO: Advance CurrentIndex within each used texture set to target the next consecutive texture buffer for the following frame.
+        # print self.layer.RenderPose[0]
+        if True:
+            # Increment to use next texture, just before writing
+            # 2d) Advance CurrentIndex within each used texture set to target the next consecutive texture buffer for the following frame.
+            tsc = self.pTextureSet.contents
+            tsc.CurrentIndex = (tsc.CurrentIndex + 1) % tsc.TextureCount
+            # print tsc.CurrentIndex
+            texture = ctypes.cast(ctypes.addressof(tsc.Textures[tsc.CurrentIndex]), ctypes.POINTER(ovr.GLTexture)).contents
+            # print texture.OGL.Header
+            glBindFramebuffer(GL_FRAMEBUFFER, self.fbo)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, 
+                    GL_COLOR_ATTACHMENT0, 
+                    GL_TEXTURE_2D,
+                    texture.OGL.TexId,
+                    0)
+            glClearColor(1, 0, 0, 1)
+            glClear(GL_COLOR_BUFFER_BIT)
+            # print glCheckFramebufferStatus(GL_FRAMEBUFFER), GL_FRAMEBUFFER_COMPLETE
+            # TODO: Clear and set up render-target.            
+            # DIRECTX.SetAndClearRenderTarget(pTexRtv[pTextureSet.CurrentIndex], pEyeDepthBuffer)
+            # Render Scene to Eye Buffers
+            # 2b) TODO: Perform rendering for each eye in an engine-specific way, rendering into the current texture within the texture set. Current texture is identified by the ovrSwapTextureSet::CurrentIndex variable.
+            for eye in range(2):
+                pass
+                # Big TODO:
+                # Get view and projection matrices for the Rift camera
+                # pos = originPos + originRot.Transform(layer.RenderPose[eye].Position)
+                # rot = originRot * Matrix4f(layer.RenderPose[eye].Orientation)
+                # finalUp      = rot.Transform(Vector3f(0, 1, 0))
+                # finalForward = rot.Transform(Vector3f(0, 0, -1))
+                # TODO: view         = Matrix4f::LookAtRH(pos, pos + finalForward, finalUp)
+                # proj = ovr.matrix4f_Projection(layer.Fov[eye], 0.2, 1000.0,
+                #                 ovr.Projection_RightHanded)
+                # Render the scene for this eye.
+                # DIRECTX.SetViewport(layer.Viewport[eye])
+                # roomScene.Render(proj * view, 1, 1, 1, 1, true)
+        # Submit frame with one layer we have.
+        # 2c) Call ovr_SubmitFrame, passing swap texture set(s) from the previous step within a ovrLayerEyeFov structure. Although a single layer is required to submit a frame, you can use multiple layers and layer types for advanced rendering. ovr_SubmitFrame passes layer textures to the compositor which handles distortion, timewarp, and GPU synchronization before presenting it to the headset. 
+        layers = self.layer.Header
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        result = ovr.submitFrame(self.hmd, 0, None, layers, 1)
+        print result
+        # self.isVisible = (result == ovr.Success)
+
 
     def dispose_hmd(self):
         "Release resources for Oculus Rift tracking and rendering"
@@ -124,10 +163,15 @@ class RiftTriangle():
         glLoadIdentity()
         gluPerspective(45.0, float(width)/float(height), 0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
+        # Framebuffer
+        self.fbo = glGenFramebuffers(1)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.fbo)
+        print "framebuffer = ", self.fbo
 
     def dispose_gl(self):
         "Release resources used for OpenGL rendering"
-        pass 
+        if self.fbo is not None:
+            glDeleteFramebuffers( [self.fbo] )
 
     def hmd_state(self):
         ts = ovr.getTrackingState(self.hmd, ovr.getTimeInSeconds())
@@ -140,10 +184,10 @@ class RiftTriangle():
 if __name__ == "__main__":
     # Use "with" keyword, to get C++-like lexical scope for HMD resource
     with RiftTriangle() as app:
-        for t in range(3):
+        for t in range(10):
             ts = app.hmd_state()
-            print ts.HeadPose.ThePose
+            # print ts.HeadPose.ThePose
             sys.stdout.flush()
             app.render_frame()
-            time.sleep(0.500)
+            # time.sleep(0.500)
 
