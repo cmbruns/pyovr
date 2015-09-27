@@ -108,10 +108,14 @@ class RiftTriangle():
     def draw_triangle(self):
         glDisable(GL_TEXTURE_2D)
         glBegin(GL_TRIANGLE_STRIP)
+        size = 0.15
+        x = 0.10
+        y = 0.00
+        z = -0.5
         glColor3f(0.3, 0.3, 0.3)
-        glVertex3f(0.10, 0.00, -1)
-        glVertex3f(0.10, 0.25, -1)
-        glVertex3f(0.35, 0.25, -1)
+        glVertex3f(x, y, z)
+        glVertex3f(x, y+size, z)
+        glVertex3f(x+size, y+size, z)
         glEnd()
 
     def render_frame(self):
