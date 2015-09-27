@@ -35,6 +35,8 @@ ovr.destroy(hmd)
 ovr.shutdown()
 ```
 
+Look in the "examples" folder for more example code.
+
 ## Details
 Runs on Windows only at the moment, but so does OVR SDK 0.7.0
 
