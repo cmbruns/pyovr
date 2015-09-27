@@ -1871,8 +1871,6 @@ getEyePoses = libovr.ovr_GetEyePoses
 ### END Declarations from C header file OVR_CAPI_Util.h  ###
 
 
-
-
 # Run test program
 if __name__ == "__main__":
     # Transcribed from initial example at 
