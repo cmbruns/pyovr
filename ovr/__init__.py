@@ -8,6 +8,7 @@ Works on Windows only at the moment (just like Oculus Rift SDK...)
 import ctypes
 from ctypes import byref
 import sys
+import textwrap
 
 # Load Oculus runtime library
 # Assumes Oculus Runtime 0.7 install on 32 bit windows
@@ -166,7 +167,17 @@ class Matrix4f(ctypes.Structure):
     ]
     
     def __repr__(self):
-        return "Matrix4f(%f, %f, %f)" % (self.x, self.y, self.z)
+        m = self.M
+        return textwrap.dedent("""
+            Matrix4f([
+                %f, %f, %f, %f,
+                %f, %f, %f, %f,
+                %f, %f, %f, %f,
+                %f, %f, %f, %f])""") % (
+            m[0][0], m[0][1], m[0][2], m[0][3],
+            m[1][0], m[1][1], m[1][2], m[1][3],
+            m[2][0], m[2][1], m[2][2], m[2][3],
+            m[3][0], m[3][1], m[3][2], m[3][3])
 
 
 # OVR_CAPI_0_7_0.h line 331
@@ -1745,18 +1756,18 @@ ProjectionModifier = ENUM_TYPE
 # * Near depth values stored in the depth buffer are smaller than far depth values.
 # * Both near and far are explicitly defined.
 # * With a clipping range that is (0 to w).
-ovrProjection_None = 0x00
+Projection_None = 0x00
 # Enable if using right-handed transformations in your application.
-ovrProjection_RightHanded = 0x01
+Projection_RightHanded = 0x01
 # After the projection transform is applied, far values stored in the depth buffer will be less than closer depth values.
 # NOTE: Enable only if the application is using a floating-point depth buffer for proper precision.
-ovrProjection_FarLessThanNear = 0x02
+Projection_FarLessThanNear = 0x02
 # When this flag is used, the zfar value pushed into ovrMatrix4f_Projection() will be ignored
 # NOTE: Enable only if ovrProjection_FarLessThanNear is also enabled where the far clipping plane will be pushed to infinity.
-ovrProjection_FarClipAtInfinity = 0x04
+Projection_FarClipAtInfinity = 0x04
 # Enable if the application is rendering with OpenGL and expects a projection matrix with a clipping range of (-w to w).
 # Ignore this flag if your application already handles the conversion from D3D range (0 to w) to OpenGL.
-ovrProjection_ClipRangeOpenGL = 0x08
+Projection_ClipRangeOpenGL = 0x08
 
 
 # Used to generate projection from ovrEyeDesc::Fov.
@@ -1771,8 +1782,10 @@ ovrProjection_ClipRangeOpenGL = 0x08
 # \see ovrProjectionModifier
 #
 # OVR_PUBLIC_FUNCTION(ovrMatrix4f) ovrMatrix4f_Projection(ovrFovPort fov, float znear, float zfar, unsigned int projectionModFlags);
-matrix4f_Projection = libovr.ovrMatrix4f_Projection
-
+libovr.ovrMatrix4f_Projection.restype = Matrix4f
+libovr.ovrMatrix4f_Projection.argtypes = [FovPort, ctypes.c_float, ctypes.c_float, ctypes.c_uint]
+def matrix4f_Projection(fov, znear, zfar, projectionModFlags):
+    return libovr.ovrMatrix4f_Projection(fov, znear, zfar, projectionModFlags)
 
 # Extracts the required data from the result of ovrMatrix4f_Projection.
 #
