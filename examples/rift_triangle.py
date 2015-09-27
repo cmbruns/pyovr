@@ -6,6 +6,8 @@ import time
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
+from OpenGL.raw.GL.EXT.framebuffer_sRGB import glInitFramebufferSrgbEXT
+from OpenGL.GL.EXT.framebuffer_sRGB import *
 
 import ovr
 
@@ -91,7 +93,7 @@ class RiftTriangle():
         "Paint one frame image during display loop"
         # A) Display something to screen
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
-        glClearColor(0, 1, 0, 1)
+        glClearColor(0.2, 0.5, 0.2, 1)
         glClear(GL_COLOR_BUFFER_BIT)
         # B) Report Head Tracking
         # if self.hmd is None:
@@ -112,11 +114,9 @@ class RiftTriangle():
             tsc = self.pTextureSet.contents
             tsc.CurrentIndex = (tsc.CurrentIndex + 1) % tsc.TextureCount
             # print tsc.CurrentIndex
-            texture = ctypes.cast(ctypes.addressof(tsc.Textures[tsc.CurrentIndex]), ctypes.POINTER(ovr.GLTexture)).contents
-            # print texture.OGL.Header
-            glBindTexture(GL_TEXTURE_2D, 0)
-            glEnable(GL_TEXTURE_2D)
+            # Clear and set up render-target.            
             glBindFramebuffer(GL_FRAMEBUFFER, self.fbo)
+            texture = ctypes.cast(ctypes.addressof(tsc.Textures[tsc.CurrentIndex]), ctypes.POINTER(ovr.GLTexture)).contents
             glFramebufferTexture2D(GL_FRAMEBUFFER, 
                     GL_COLOR_ATTACHMENT0, 
                     GL_TEXTURE_2D,
@@ -126,7 +126,6 @@ class RiftTriangle():
             glClear(GL_COLOR_BUFFER_BIT)
             # glClear(GL_COLOR_BUFFER_BIT)
             # print glCheckFramebufferStatus(GL_FRAMEBUFFER), GL_FRAMEBUFFER_COMPLETE
-            # TODO: Clear and set up render-target.            
             # DIRECTX.SetAndClearRenderTarget(pTexRtv[pTextureSet.CurrentIndex], pEyeDepthBuffer)
             # Render Scene to Eye Buffers
             # 2b) TODO: Perform rendering for each eye in an engine-specific way, rendering into the current texture within the texture set. Current texture is identified by the ovrSwapTextureSet::CurrentIndex variable.
@@ -144,13 +143,10 @@ class RiftTriangle():
                 # Render the scene for this eye.
                 v = self.layer.Viewport[eye]
                 glViewport(v.Pos.x, v.Pos.y, v.Size.w, v.Size.h)
-                # print v.Pos.x, v.Pos.y, v.Size.w, v.Size.h
-                # DIRECTX.SetViewport(layer.Viewport[eye])
-                # roomScene.Render(proj * view, 1, 1, 1, 1, true)
+                # TODO: roomScene.Render(proj * view, 1, 1, 1, 1, true)
         # Submit frame with one layer we have.
         # 2c) Call ovr_SubmitFrame, passing swap texture set(s) from the previous step within a ovrLayerEyeFov structure. Although a single layer is required to submit a frame, you can use multiple layers and layer types for advanced rendering. ovr_SubmitFrame passes layer textures to the compositor which handles distortion, timewarp, and GPU synchronization before presenting it to the headset. 
         layers = self.layer.Header
-        # glBindFramebuffer(GL_FRAMEBUFFER, 0)
         viewScale = ovr.ViewScaleDesc()
         viewScale.HmdSpaceToWorldScaleInMeters = 1.0
         viewScale.HmdToEyeViewOffset[0] = self.hmdToEyeViewOffset[0]
@@ -159,7 +155,8 @@ class RiftTriangle():
         # print result
         self.frame_index += 1
         # self.isVisible = (result == ovr.Success)
-        # glutSwapBuffers()
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glutSwapBuffers()
 
 
     def dispose_hmd(self):
@@ -178,13 +175,16 @@ class RiftTriangle():
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE)
         glutInitWindowSize(width, height)
         glutInitWindowPosition(50, 50)
-        win = glutCreateWindow("Just a triangle")  
+        win = glutCreateWindow("Just a triangle")
+        if glInitFramebufferSrgbEXT():
+            pass
+            glEnable(GL_FRAMEBUFFER_SRGB_EXT)
         glViewport(0, 0, int(width), int(height))
         glutDisplayFunc(self.render_frame)
         glutIdleFunc(self.render_frame)
         glutReshapeFunc(self.resize_console)
         # 
-        glClearColor(0.5, 0.5, 1, 1)
+        glClearColor(0.2, 0.2, 0.5, 1)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(45.0, float(width)/float(height), 0.1, 100.0)
@@ -193,6 +193,7 @@ class RiftTriangle():
         # Framebuffer
         self.fbo = glGenFramebuffers(1)
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, self.fbo)
+        # glEnable(GL_FRAMEBUFFER_SRGB_EXT) # redundant?
         print "framebuffer = ", self.fbo
 
     def resize_console(self, width, height):
