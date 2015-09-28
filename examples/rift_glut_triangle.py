@@ -1,5 +1,10 @@
 #!/bin/env python
 
+# Draws a single triangle in VR, as a proof of concept
+# This monolithic version does everything in this one module.
+# See rift_glut_triangle2 for refactored version, which separates
+# Renderer from Hmd responsibilities.
+
 import sys
 import time
 import math
