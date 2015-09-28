@@ -17,7 +17,7 @@ my @header_files = (
 
 # No more modifications should be necessary...
 
-my $type_rx = '\S[^;\n()]*\S+'; # can have spaces, e.g. "const unsigned int"
+my $type_rx = '[^;\n(),\s][^;\n(),]*[^;\n(),\s]'; # can have spaces, e.g. "const unsigned int"
 my $ident_rx = '[a-zA-Z0-9_]+'; # yes, initial underscores should be parsed too...
 my $comment_line_rx = '(?<=\n)[\ ]*(?://|/\*)[^\n]*\n';
 
@@ -154,6 +154,7 @@ sub process_code_block {
     process_simple_typedefs($code, \%translated_by_pos);
     process_enums($code, \%translated_by_pos);
     process_macros($code, \%translated_by_pos);
+    process_structs($code, \%translated_by_pos);
 
     my $line_number = 0;
     foreach my $pos (sort {$a <=> $b} keys %translated_by_pos) {
@@ -163,6 +164,127 @@ sub process_code_block {
         print $out "# Translated from header file $fname line $line_number\n";
         print $out $translated_by_pos{$pos}, "\n\n";
     }
+}
+
+sub process_structs {
+    my $code = shift;
+    my $by_pos = shift;
+
+    # First use a simple regex, to be sure of counting all examples
+    my $count1 = 0;
+    # skip structs without bodies
+    # skip the word "struct" within a comment
+    while ($code =~ m/\n[^\/]*\bstruct\b[^;]*\{/g) {
+        $count1 += 1;
+    }
+
+    my $count2 = 0;
+    while ($code =~ m/
+        ((?:$comment_line_rx)*) # Previous block of comment lines
+        (?<=\n)
+        \btypedef\b
+        \s+
+        \bstruct\b
+        (?:\s+OVR_ALIGNAS\(([^)]+)\))? # optional memory alignment
+        \s+
+        \S+ # structed class name
+        \s*
+        \{
+        ([^\}]*)
+        \}
+        \s*
+        (\S+) # primary class name
+        \s*
+        ;
+        /gx) 
+    {
+        my $comment = $1;
+        my $alignment = $2;
+        my $body = $3;
+        my $class_name = $4;
+        my $p = pos($code) - length($&);
+
+        $class_name = translate_type($class_name);
+
+        my $trans = "";
+        $trans .= "class $class_name(ctypes.Structure):\n";
+
+        if (defined($comment)) {
+            # Use comment as docstring
+            $comment =~ s/^\s+|\s+$//g; # trim terminal whitespace
+            $comment =~ s!^([^/]*)/+\*? ?(.*)$!$1$2!mg; # remove comment characters
+            if ($comment =~ /\n/) {
+                # Multiline comment
+                $trans .= "    \"\"\"\n";
+                foreach my $line (split "\n", $comment) {
+                    # $line =~ s/^\s*//;
+                    $trans .= "    $line\n";
+                }
+                $trans .= "    \"\"\"\n";
+            }
+            else {
+                $trans .= "    \"$comment\"\n";
+            }
+        }
+
+        if (defined($alignment)) {
+            $trans .= "    _pack_ = $alignment\n";
+        }
+
+        $trans .= "    _fields_ = [\n";
+
+        foreach my $line (split "\n", $body) {
+            # "int w, h;"
+            next if $line =~ m/^\s*$/; # skip blank lines
+            if ($line =~ m/
+                ^
+                \s*
+                ($type_rx)
+                \s+
+                ((?:$ident_rx,?\s*)*)
+                (?:\[([^\]]+)\]\s*)? # first array dimension
+                (?:\[([^\]]+)\]\s*)? # second array dimension "M[4][4]"
+                ;
+                (.*) # rest of line (comment?)
+                $
+                /x) 
+            {
+                my $type = $1;
+                my $identifiers = $2;
+                my $count = $3;
+                my $count2 = $4;
+                my $rest = $5;
+
+                $rest = translate_comment($rest);
+                $type = translate_type($type);
+                if (defined $count) {
+                    $type = "$type * $count";
+                }
+                if (defined $count2) {
+                    $type = "($type) * $count2";
+                }
+                foreach my $ident (split ",", $identifiers) {
+                    $ident =~ s/^\s+|\s+$//g; # trim white space
+                    $ident = translate_ident($ident);
+                    $trans .= "        (\"$ident\", $type), $rest\n";
+                }
+            }
+            else {
+                $line = translate_comment($line);
+                $line  =~ s/^\s+|\s+$//g; # trim white space
+                $trans .= "        $line\n";
+            }
+        }
+
+        $trans .= "    ]\n";
+
+        $by_pos->{$p} = $trans;
+
+        $count2 += 1;
+    }
+
+    print "$count1 ($count2) structs found\n";
+    die unless $count1 == $count2;
 }
 
 sub process_macros {
@@ -188,7 +310,7 @@ sub process_macros {
         my $fn_name = $1;
         my $args = $2;
         my $fn_body = $3;
-        my $p = pos($code);
+        my $p = pos($code) - length($&);
 
         # Remove OVR_ prefix
         $fn_name =~ s/\bOVR_//g;
@@ -203,7 +325,7 @@ sub process_macros {
         $count1 += 1;
     }
 
-    print $count1, " macros found\n";
+    # print $count1, " macros found\n";
 
 }
 
@@ -235,7 +357,7 @@ sub process_enums {
         my $comment = $1;
         my $contents = $2;
         my $enum_name = $3;
-        my $p = pos($code);
+        my $p = pos($code) - length($&);
 
         $comment = translate_comment($comment);
 
@@ -319,7 +441,7 @@ sub process_simple_typedefs {
         my $type = $2;
         my $ident = $3;
         my $rest = $4;
-        my $p = pos($code);
+        my $p = pos($code) - length($&);
 
         $pre_comment = translate_comment($pre_comment);
         $rest = translate_comment($rest);
