@@ -19,7 +19,7 @@ my @header_files = (
 
 my $type_rx = '\S[^;\n()]*\S+'; # can have spaces, e.g. "const unsigned int"
 my $ident_rx = '[a-zA-Z0-9_]+'; # yes, initial underscores should be parsed too...
-
+my $comment_line_rx = '(?<=\n)[\ ]*(?://|/\*)[^\n]*\n';
 
 translate_header();
 
@@ -40,13 +40,23 @@ from ctypes import byref
 import sys
 import textwrap
 import math
+import platform
 
-# Load Oculus runtime library
-# Assumes Oculus Runtime 0.7 install on 32 bit windows
+
+OVR_PTR_SIZE = ctypes.sizeof(ctypes.c_voidp) # distinguish 32 vs 64 bit python
+
+# Load Oculus runtime library (only tested on Windows)
+# 1) Figure out name of library to load
+_libname = OVRRT32_0_7 # 32-bit python
+if OVR_PTR_SIZE == 8:
+    _libname = OVRRT64_0_7 # 64-bit python
+if platform.system().startswith("Win"):
+    _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_7"
+# Load library
 try:
-    libovr = ctypes.cdll.LibOVRRT32_0_7
+    libovr = ctypes.CDLL(_libname)
 except:
-    print "Is Oculus Runtime 0.7 installed on this Windows machine?"
+    print "Is Oculus Runtime 0.7 installed on this machine?"
     raise
 
 
@@ -138,6 +148,7 @@ sub process_code_block {
 
     process_simple_typedefs($code, \%translated_by_pos);
     process_enums($code, \%translated_by_pos);
+    process_macros($code, \%translated_by_pos);
 
     my $line_number = 0;
     foreach my $pos (sort {$a <=> $b} keys %translated_by_pos) {
@@ -149,11 +160,52 @@ sub process_code_block {
     }
 }
 
-sub process_enums {
+sub process_macros {
     my $code = shift;
     my $by_pos = shift;
 
     # First use a simple regex, to be sure of counting all examples
+    # e.g. "#define OVR_SUCCESS(result) (result >= 0)"
+    my $count1 = 0;
+    # Look for typedefs with a semicolon on the same line
+    while ($code =~ m/
+            \#define\s+
+            ([^( ]+) # function name
+            \( # open paren
+            ([^)]+) # arguments
+            \) # close paren
+            \s*
+            \( # open paren
+            ([^\n]+) # arguments
+            \) # close paren            
+            /gx) 
+    {
+        my $fn_name = $1;
+        my $args = $2;
+        my $fn_body = $3;
+        my $p = pos($code);
+
+        # Remove OVR_ prefix
+        $fn_name =~ s/\bOVR_//g;
+        $fn_body =~ s/\bOVR_//g;
+
+        # Translate not
+        $fn_body =~ s/!/not /g;
+
+        my $trans = "def $fn_name($args):\n    return $fn_body\n";
+
+        $by_pos->{$p} = $trans;
+        $count1 += 1;
+    }
+
+    print $count1, " macros found\n";
+
+}
+
+sub process_enums {
+    my $code = shift;
+    my $by_pos = shift;
+
     # First use a simple regex, to be sure of counting all examples
     # "typedef int32_t ovrResult;"
     my $count1 = 0;
@@ -165,7 +217,9 @@ sub process_enums {
     my $count2 = 0;
 
     while ($code =~ m/
-            \n[\ \t]*typedef\s+enum\s+ # 
+            ((?:$comment_line_rx)*) # Previous block of comment lines
+            (?<=\n)[\ \t]* # lookbehind for start of line
+            typedef\s+enum\s+ # 
             $ident_rx # first unused enum name
             \s*\{ # open brace
             ([^\}]*) # TODO: contents
@@ -173,9 +227,12 @@ sub process_enums {
             ($ident_rx) # primary enum name
             /gx) 
     {
-        my $contents = $1;
-        my $enum_name = $2;
+        my $comment = $1;
+        my $contents = $2;
+        my $enum_name = $3;
         my $p = pos($code);
+
+        $comment = translate_comment($comment);
 
         # 1) Declare type alias for enum
         $enum_name = translate_type($enum_name);
@@ -226,7 +283,7 @@ sub process_enums {
         $count2 += 1;
     }
 
-    print "$count1 ($count2) enums found\n";
+    # print "$count1 ($count2) enums found\n";
     die unless $count1 == $count2;
 }
 
@@ -243,14 +300,28 @@ sub process_simple_typedefs {
     }
 
     my $count2 = 0;    
-    while ($code =~ m/\n(typedef[ \t]+($type_rx)[ \t]+($ident_rx)[ \t]*;)/g) {
+    while ($code =~ m/
+            ((?:$comment_line_rx)*) # Previous block of comment lines
+            (?<=\n)[ \t]* # Lookbehind for beginning of line
+            typedef[ \t]+ # typedef
+            ($type_rx)[ \t]+ # existing type
+            ($ident_rx)[ \t]* # new type
+            ; # semicolon
+            ([^\n]*) # rest of line
+            /gx) 
+    {
+        my $pre_comment = $1;
         my $type = $2;
         my $ident = $3;
+        my $rest = $4;
         my $p = pos($code);
+
+        $pre_comment = translate_comment($pre_comment);
+        $rest = translate_comment($rest);
 
         my $tid = translate_type($ident); # Yes, translate_type, not translate_ident
         my $ttype = translate_type($type);
-        my $trans = "$tid = $ttype\n";
+        my $trans = "$pre_comment$tid = $ttype $rest\n";
         # print $trans;
         $by_pos->{$p} = $trans;
         $count2 += 1;
@@ -258,6 +329,19 @@ sub process_simple_typedefs {
 
     # print "$count1 ($count2) simple typedefs found\n";
     die unless $count1 == $count2;
+}
+
+sub translate_comment {
+    my $c = shift;
+    $c = "" unless defined $c;
+
+    $c =~ s!^([^/]*)///!$1\#!mg; # Convert to python style comment
+    $c =~ s!^([^/]*)//!$1\#!mg; # Convert to python style comment
+    $c =~ s!^([^/]*)/\*!$1\#!mg; # Convert to python style comment
+
+    # print $c;
+
+    return $c;
 }
 
 sub translate_ident {
