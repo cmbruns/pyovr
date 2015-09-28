@@ -47,7 +47,7 @@ OVR_PTR_SIZE = ctypes.sizeof(ctypes.c_voidp) # distinguish 32 vs 64 bit python
 
 # Load Oculus runtime library (only tested on Windows)
 # 1) Figure out name of library to load
-_libname = OVRRT32_0_7 # 32-bit python
+_libname = "OVRRT32_0_7" # 32-bit python
 if OVR_PTR_SIZE == 8:
     _libname = OVRRT64_0_7 # 64-bit python
 if platform.system().startswith("Win"):
@@ -61,6 +61,11 @@ except:
 
 
 ENUM_TYPE = ctypes.c_int32 # Hopefully a close enough guess...
+
+
+class HmdStruct(ctypes.Structure):
+    "Used as an opaque pointer to an OVR session."
+    pass
 
 
 END_PREAMBLE
