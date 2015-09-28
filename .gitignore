@@ -1,3 +1,4 @@
 /ovr/*.pyc
 /build
 /examples/*.pyc
+/ovr/translated.py
