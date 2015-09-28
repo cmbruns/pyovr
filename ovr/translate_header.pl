@@ -140,7 +140,7 @@ sub process_code_block {
     process_enums($code, \%translated_by_pos);
 
     my $line_number = 0;
-    foreach my $pos (sort keys %translated_by_pos) {
+    foreach my $pos (sort {$a <=> $b} keys %translated_by_pos) {
         while ($line_for_pos[$line_number] < $pos) {
             $line_number += 1;
         }
