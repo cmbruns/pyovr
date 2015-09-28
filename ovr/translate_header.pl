@@ -18,7 +18,7 @@ my @header_files = (
 # No more modifications should be necessary...
 
 my $type_rx = '\S[^;\n()]*\S+'; # can have spaces, e.g. "const unsigned int"
-my $ident_rx = '[a-zA-Z][a-zA-Z0-9_]*';
+my $ident_rx = '[a-zA-Z0-9_]+'; # yes, initial underscores should be parsed too...
 
 
 translate_header();
@@ -50,7 +50,7 @@ except:
     raise
 
 
-ENUM_TYPE = ctypes.c_uint32 # Hopefully a close enough guess...
+ENUM_TYPE = ctypes.c_int32 # Hopefully a close enough guess...
 
 
 END_PREAMBLE
@@ -137,15 +137,97 @@ sub process_code_block {
     my %translated_by_pos = ();
 
     process_simple_typedefs($code, \%translated_by_pos);
+    process_enums($code, \%translated_by_pos);
 
     my $line_number = 0;
     foreach my $pos (sort keys %translated_by_pos) {
         while ($line_for_pos[$line_number] < $pos) {
             $line_number += 1;
         }
-        print $out "# Translated from header file $fname:$line_number\n";
+        print $out "# Translated from header file $fname line $line_number\n";
         print $out $translated_by_pos{$pos}, "\n\n";
     }
+}
+
+sub process_enums {
+    my $code = shift;
+    my $by_pos = shift;
+
+    # First use a simple regex, to be sure of counting all examples
+    # First use a simple regex, to be sure of counting all examples
+    # "typedef int32_t ovrResult;"
+    my $count1 = 0;
+    # Look for typedefs with a semicolon on the same line
+    while ($code =~ m/\n[ \t]*typedef\s+enum\s+/g) {
+        $count1 += 1;
+    }
+
+    my $count2 = 0;
+
+    while ($code =~ m/
+            \n[\ \t]*typedef\s+enum\s+ # 
+            $ident_rx # first unused enum name
+            \s*\{ # open brace
+            ([^\}]*) # TODO: contents
+            \}\s* # close brace
+            ($ident_rx) # primary enum name
+            /gx) 
+    {
+        my $contents = $1;
+        my $enum_name = $2;
+        my $p = pos($code);
+
+        # 1) Declare type alias for enum
+        $enum_name = translate_type($enum_name);
+        my $trans = "$enum_name = ENUM_TYPE\n";
+        # 2) Fill in contents
+
+        my $prev_val = "";
+        foreach my $line (split "\n", $contents) {
+            next if $line =~ m/^\s*$/; # skip blank lines
+            $line =~ s!///!\#!; # convert comments to python style
+            $line =~ s!//!\#!; # convert comments to python style
+            $line =~ s!/\*!\#!; # convert comments to python style
+            $line =~ s!\*/!\#!; # convert comments to python style
+            $line =~ s/^\s*//; # remove leading spaces
+            # Translate individual enum entries, removing comma
+            # e.g. "ovrSuccess_HMDFirmwareMismatch        = 4100,   ///< The HMD Firmware is out of date but is acceptable."
+            # "    ovrDebugHudStereo_EnumSize = 0x7fffffff     ///< \internal Force type int32_t"
+            if ($line =~ m/^($ident_rx)(\s*\=\s*)([^, ]+)\,?(.*)$/) {
+                my $id = $1;
+                my $equals = $2;
+                my $val = $3;
+                my $rest = $4;
+
+                $id = translate_type($id);
+                $val = translate_type($val); # Might be another enum value
+                $line = "$id$equals$val$rest";
+
+                $prev_val = $id;
+            }
+            # Some enum components have an implicit value, so increment previous value
+            # e.g. ovrDebugHudStereo_Count,                    ///< \internal Count of enumerated elements
+            elsif ($line =~ m/^($ident_rx)\,?\s?(.*)$/) {
+                my $id = $1;
+                my $rest = $2;
+                my $val = "$prev_val + 1";
+
+                $id = translate_type($id);
+                $val = translate_type($val); # Might be another enum value
+                $line = "$id = $prev_val + 1 $rest";
+
+                $prev_val = $id;
+            }
+
+            $trans .= "$line\n";
+        }
+
+        $by_pos->{$p} = $trans;
+        $count2 += 1;
+    }
+
+    print "$count1 ($count2) enums found\n";
+    die unless $count1 == $count2;
 }
 
 sub process_simple_typedefs {
@@ -161,19 +243,21 @@ sub process_simple_typedefs {
     }
 
     my $count2 = 0;    
-    while ($code =~ m/(typedef[ \t]+($type_rx)[ \t]+($ident_rx)[ \t]*;)/g) {
+    while ($code =~ m/\n(typedef[ \t]+($type_rx)[ \t]+($ident_rx)[ \t]*;)/g) {
         my $type = $2;
         my $ident = $3;
         my $p = pos($code);
-        $count2 += 1;
 
         my $tid = translate_type($ident); # Yes, translate_type, not translate_ident
         my $ttype = translate_type($type);
         my $trans = "$tid = $ttype\n";
-        print $trans;
+        # print $trans;
         $by_pos->{$p} = $trans;
+        $count2 += 1;
     }
-    # print "$count1 ($count2) simple typedefs found";
+
+    # print "$count1 ($count2) simple typedefs found\n";
+    die unless $count1 == $count2;
 }
 
 sub translate_ident {
