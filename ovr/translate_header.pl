@@ -5,7 +5,8 @@ use strict;
 use File::Basename;
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
+my $include_folder = "C:/Program Files/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
 
 # 2) Edit this list to change the set of header files to translate
 my @header_files = (
@@ -17,7 +18,7 @@ my @header_files = (
 
 # No more modifications should be necessary...
 
-my $type_rx = '[^;\n(),\s][^;\n(),]*[^;\n(),\s]'; # can have spaces, e.g. "const unsigned int"
+my $type_rx = '[^;\n(),\s/][^;\n(),/]*[^;\n(),\s/]'; # can have spaces, e.g. "const unsigned int"
 my $ident_rx = '[a-zA-Z0-9_]+'; # yes, initial underscores should be parsed too...
 my $comment_line_rx = '(?<=\n)[\ ]*(?://|/\*)[^\n]*\n';
 
@@ -66,6 +67,17 @@ ENUM_TYPE = ctypes.c_int32 # Hopefully a close enough guess...
 class HmdStruct(ctypes.Structure):
     "Used as an opaque pointer to an OVR session."
     pass
+
+
+# Signature of the logging callback function pointer type.
+#
+# \param[in] userData is an arbitrary value specified by the user of ovrInitParams.
+# \param[in] level is one of the ovrLogLevel constants.
+# \param[in] message is a UTF8-encoded null-terminated string.
+# \see ovrInitParams ovrLogLevel, ovr_Initialize
+#
+# typedef void (OVR_CDECL* ovrLogCallback)(ctypes.POINTER(ctypes.c_uint) userData, int level, const char* message);
+LogCallback = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_uint), ctypes.c_int, ctypes.c_char_p)
 
 
 END_PREAMBLE
@@ -233,6 +245,8 @@ sub process_structs {
 
         $trans .= "    _fields_ = [\n";
 
+        my @fields = ();
+
         foreach my $line (split "\n", $body) {
             # "int w, h;"
             next if $line =~ m/^\s*$/; # skip blank lines
@@ -258,16 +272,46 @@ sub process_structs {
                 $rest = translate_comment($rest);
                 $type = translate_type($type);
                 if (defined $count) {
+                    $count = translate_type($count);
                     $type = "$type * $count";
                 }
                 if (defined $count2) {
+                    $count2 = translate_type($count2);
                     $type = "($type) * $count2";
                 }
                 foreach my $ident (split ",", $identifiers) {
                     $ident =~ s/^\s+|\s+$//g; # trim white space
                     $ident = translate_ident($ident);
                     $trans .= "        (\"$ident\", $type), $rest\n";
+                    my @p = ($ident, $type);
+                    push @fields, \@p;
                 }
+            }
+            elsif ($line =~ m/^
+                \s*
+                OVR_UNUSED_STRUCT_PAD\(
+                (\S+)
+                ,\s*
+                (\S+)
+                \)
+                (.*)
+                $/x) 
+            {
+                my $id = $1;
+                my $pad = $2;
+                my $rest = $3;
+
+                $rest = translate_comment($rest);
+
+                $trans .= "        (\"$id\", ctypes.c_char * $pad), $rest\n";
+            }
+            elsif ($line =~ m/^
+                \s*
+                OVR_ON64\(
+                OVR_UNUSED_STRUCT_PAD\(
+                /x) 
+            {
+                # TODO: eventually handle 64-bit padding correctly
             }
             else {
                 $line = translate_comment($line);
@@ -275,8 +319,47 @@ sub process_structs {
                 $trans .= "        $line\n";
             }
         }
+        $trans .= "    ]\n"; # end fields
 
-        $trans .= "    ]\n";
+        # Constructor
+        if ($#fields >= 0) {
+            my @df_args = ();
+            my @ndf_args = ();
+            $trans .= "\n    def __init__(self, ";
+            foreach my $f (@fields) { # arguments
+                my $field = $f->[0];
+                my $type = $f->[1];
+                my $arg = $field;
+                if ($type =~ m/^ctypes.c_(?:float|double|u?int)[^\*]*$/) {
+                    push @df_args, $arg;
+                }
+                else {
+                    push @ndf_args, $arg;
+                }
+            }
+            my @df2_args = ();
+            foreach my $a (@df_args) {
+                push @df2_args, "$a=0"; # set default value
+            }
+            $trans .= join ", ", @ndf_args, @df2_args;
+            $trans .= "):\n";
+            foreach my $a (@ndf_args, @df_args) { # initializers
+                $trans .= "        self.$a = $a\n";
+            }
+        }
+
+        # String representation
+        $trans .= "\n    def __repr__(self):\n        return \"ovr.$class_name(";
+        my $s = $#fields + 1;
+        $trans .= join ", ", ("%s") x $s;
+        $trans .= ")\" % (";
+        my @args = ();
+        foreach my $f (@fields) { # arguments
+            my $field = $f->[0];
+            push @args, "self.$field";
+        }
+        $trans .= join ", ", @args;
+        $trans .= ")\n";
 
         $by_pos->{$p} = $trans;
 
@@ -497,9 +580,14 @@ sub translate_type {
     if ($type =~ m/^ovr_?(.*)$/) {
         $type = ucfirst($1); # capitalize first letter of types
     }
-    # translate pointer type
+    # translate pointer type "*"
     while ($type =~ m/^([^\*]+)\*(.*)$/) { # HmdStruct* -> ctypes.POINTER(HmdStruct)
        $type = "ctypes.POINTER($1)$2";
     }
+    # translate pointer type "ptr"
+    while ($type =~ m/^([^\*]+)ptr(.*)$/) { # uintptr_t -> ctypes.POINTER(ctypes.c_uint)
+       $type = "ctypes.POINTER($1)$2";
+    }
+
     return $type;
 }
