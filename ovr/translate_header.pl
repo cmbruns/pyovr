@@ -5,8 +5,8 @@ use strict;
 use File::Basename;
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "C:/Program Files/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
-# my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Program Files/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
+my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
 
 # 2) Edit this list to change the set of header files to translate
 my @header_files = (
@@ -193,7 +193,9 @@ sub process_functions {
     my $count2 = 0;
     # "OVR_PUBLIC_FUNCTION(ovrResult) ovr_Initialize(const ovrInitParams* params);"
     while ($code =~ m/
-            \n[^\/\#]* # beginning of line with no comments
+            ((?:$comment_line_rx)*) # Previous block of comment lines
+            (?<=\n)
+            [^\/\#]* # beginning of line with no comments
             OVR_PUBLIC_FUNCTION
             \(
             ($type_rx) # return type
@@ -205,17 +207,22 @@ sub process_functions {
             ;\n
             /gx) 
     {
-        my $return_type = $1;
-        my $fn_name = $2;
-        my $argument_list = $3;
+        my $comment = $1;
+        my $return_type = $2;
+        my $fn_name = $3;
+        my $argument_list = $4;
         my $p = pos($code) - length($&);
 
         $return_type = translate_type($return_type);
-        my $py_fn_name = translate_ident($fn_name);
+        my $py_fn_name = translate_function_name($fn_name);
 
+        # Return type for ctypes function
         my $trans = "libovr.$fn_name.restype = $return_type\n";
-        my @py_args = ();
+        my @arg_names = ();
         my @arg_types = ();
+        my %types_by_arg = ();
+
+        # Argument types for ctypes function
         if (defined($argument_list) and $argument_list =~ m/\S/) {
             $trans .= "libovr.$fn_name.argtypes = [";
             my @args = split '\s*,\s*', $argument_list;
@@ -227,11 +234,105 @@ sub process_functions {
                 my $type = $1;
                 my $ident = $2;
                 my $decoration = $3;
-                push @py_args, $ident;
-                push @arg_types, translate_type($type);
+
+                $type = translate_type($type);
+                # Fixed-size array return value
+                if (! defined $decoration) {}
+                elsif ($decoration =~ m/^\[(\d+)\]$/) {
+                    $type = "$type * $1";
+                }
+                # Unspecified array type return value
+                elsif ($decoration =~ m/^\[\]$/) {
+                    $type = "ctypes.POINTER($type)";
+                }
+
+                push @arg_names, $ident;
+                push @arg_types, $type;
+                $types_by_arg{$ident} = $type;
             }
             $trans .= join ", ", @arg_types;
             $trans .= "]\n";
+        }
+
+        # Maybe create local variable for out parameters
+        my @out_args = ();
+        my %out_args_set = ();
+        if (defined $comment) {
+            # Search function docstring for output parameters
+            while ($comment =~ m/\\param\[out\]\s*(\S+)/g) {
+                my $arg_name = $1;
+                # All output arguments of non-array type get special treatment
+                if (! exists $types_by_arg{$arg_name}) {
+                    # print "Argument not found! $fn_name : $arg_name \n";
+                    # Hard code luid => pLuid
+                    $arg_name = "p".ucfirst($arg_name);
+                }
+                if ($types_by_arg{$arg_name} !~ m/ \* /) {
+                    push @out_args, $arg_name;
+                    $out_args_set{$arg_name} = 1;
+                }
+            }
+        }
+        my @input_args = ();
+        foreach my $arg (@arg_names) {
+            if (! exists $out_args_set{$arg}) {
+                push @input_args, $arg;
+            }
+        }
+
+        # Python wrapper for function
+        $trans .= "def $py_fn_name(";
+        $trans .= join ", ", @input_args;
+        $trans .= "):\n";
+        # Docstring
+        $trans .= translate_docstring_comment($comment);
+
+        # Declare local variables for output arguments
+        foreach my $arg (@out_args) {
+            my $type = $types_by_arg{$arg};
+            $type =~ s/^ctypes.POINTER\((.*)\)$/$1/;
+            $trans .= "    $arg = $type()\n";
+        }
+
+        # Wrap output args with "byref"
+        my @call_args = ();
+        foreach my $arg (@arg_names) {
+            if (exists $out_args_set{$arg}) {
+                $arg = "byref($arg)";
+            }
+            push @call_args, $arg;
+        }
+        # Delegated function call
+        $trans .= "    result = "; # indent function call
+        $trans .= "libovr.$fn_name(";
+        $trans .= join ", ", @call_args;
+        $trans .= ")\n";
+
+        # Handle OVR specific return codes
+        if ($return_type =~ m/^Result$/) {
+            # TODO: 
+            $trans .= <<EOF;
+    if FAILURE(result):
+        raise Exception(\"Call to function $py_fn_name failed\")    
+EOF
+        }
+        my @return_items = ();
+        # Limit return values to important ones
+        if ($#out_args >= 0) {
+            if ($return_type =~ m/^None$/) {}
+            elsif ($return_type =~ m/^Result$/) {}
+            else {
+                push @return_items, "result";
+            }
+            push @return_items, @out_args;
+        }
+        else {
+            # Might as well return result var, if it's the only output
+            push @return_items, "result";
+        }
+        if ($#return_items >= 0) {
+            my $returns = join ", ", @return_items;
+            $trans .= "    return $returns\n";
         }
 
         $by_pos->{$p} = $trans;
@@ -668,4 +769,34 @@ sub translate_type {
     }
 
     return $type;
+}
+
+sub translate_docstring_comment {
+    my $comment = shift;
+    my $trans = "";
+
+    if (defined($comment)) {
+        # Use comment as docstring
+        $comment =~ s/^\s+|\s+$//g; # trim terminal whitespace
+        $comment =~ s!^([^/]*)/+\*? ?(.*)$!$1$2!mg; # remove comment characters
+        if ($comment =~ m/^\s*$/) {} # no content
+        elsif ($comment =~ /\n/) {
+            # Multiline comment
+            $trans .= "    \"\"\"\n";
+            foreach my $line (split "\n", $comment) {
+                # $line =~ s/^\s*//;
+                $trans .= "    $line\n";
+            }
+            $trans .= "    \"\"\"\n";
+        }
+        else {
+            $trans .= "    \"$comment\"\n";
+        }
+    }
+}
+
+sub translate_function_name {
+    my $fn_name = shift;
+    $fn_name =~ s/^ovr_?//;
+    return lcfirst($fn_name);
 }
