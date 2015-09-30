@@ -167,6 +167,7 @@ sub process_code_block {
     process_enums($code, \%translated_by_pos);
     process_macros($code, \%translated_by_pos);
     process_structs($code, \%translated_by_pos);
+    process_functions($code, \%translated_by_pos);
 
     my $line_number = 0;
     foreach my $pos (sort {$a <=> $b} keys %translated_by_pos) {
@@ -178,6 +179,70 @@ sub process_code_block {
     }
 }
 
+sub process_functions {
+    my $code = shift;
+    my $by_pos = shift;
+
+    # First use a simple regex, to be sure of counting all examples
+    my $count1 = 0;
+    # "OVR_PUBLIC_FUNCTION(ovrResult) ovr_Initialize(const ovrInitParams* params);"
+    while ($code =~ m/\n[^\/\#]*OVR_PUBLIC_FUNCTION\(/g) {
+        $count1 += 1;
+    }
+
+    my $count2 = 0;
+    # "OVR_PUBLIC_FUNCTION(ovrResult) ovr_Initialize(const ovrInitParams* params);"
+    while ($code =~ m/
+            \n[^\/\#]* # beginning of line with no comments
+            OVR_PUBLIC_FUNCTION
+            \(
+            ($type_rx) # return type
+            \)\s*
+            ($ident_rx) # function name
+            \(
+            ([^\)]*) # argument list
+            \)
+            ;\n
+            /gx) 
+    {
+        my $return_type = $1;
+        my $fn_name = $2;
+        my $argument_list = $3;
+        my $p = pos($code) - length($&);
+
+        $return_type = translate_type($return_type);
+        my $py_fn_name = translate_ident($fn_name);
+
+        my $trans = "libovr.$fn_name.restype = $return_type\n";
+        my @py_args = ();
+        my @arg_types = ();
+        if (defined($argument_list) and $argument_list =~ m/\S/) {
+            $trans .= "libovr.$fn_name.argtypes = [";
+            my @args = split '\s*,\s*', $argument_list;
+            foreach my $arg (@args) {
+                die $arg unless $arg =~ m/^
+                        ($type_rx)\s+
+                        ($ident_rx)
+                        (\[\d*\])?$/x;
+                my $type = $1;
+                my $ident = $2;
+                my $decoration = $3;
+                push @py_args, $ident;
+                push @arg_types, translate_type($type);
+            }
+            $trans .= join ", ", @arg_types;
+            $trans .= "]\n";
+        }
+
+        $by_pos->{$p} = $trans;
+
+        $count2 += 1;
+    }
+
+    print "$count1 ($count2) functions found\n";
+    die unless $count1 == $count2;
+};
+
 sub process_structs {
     my $code = shift;
     my $by_pos = shift;
@@ -186,7 +251,8 @@ sub process_structs {
     my $count1 = 0;
     # skip structs without bodies
     # skip the word "struct" within a comment
-    while ($code =~ m/\n[^\/]*\bstruct\b[^;]*\{/g) {
+    while ($code =~ m/\n[^\/]*\b(struct|union)\b[^;]*\{/g) 
+    {
         $count1 += 1;
     }
 
@@ -196,7 +262,7 @@ sub process_structs {
         (?<=\n)
         \btypedef\b
         \s+
-        \bstruct\b
+        \b(struct|union)\b
         (?:\s+OVR_ALIGNAS\(([^)]+)\))? # optional memory alignment
         \s+
         \S+ # structed class name
@@ -211,15 +277,23 @@ sub process_structs {
         /gx) 
     {
         my $comment = $1;
-        my $alignment = $2;
-        my $body = $3;
-        my $class_name = $4;
+        my $struct_or_union = $2;
+        my $alignment = $3;
+        my $body = $4;
+        my $class_name = $5;
         my $p = pos($code) - length($&);
 
         $class_name = translate_type($class_name);
 
         my $trans = "";
-        $trans .= "class $class_name(ctypes.Structure):\n";
+        $trans .= "class $class_name(ctypes.";
+        if ($struct_or_union =~ m/^struct$/) {
+            $trans .= "Structure";
+        }
+        else {
+            $trans .= "Union";            
+        }
+        $trans .= "):\n";
 
         if (defined($comment)) {
             # Use comment as docstring
@@ -366,7 +440,7 @@ sub process_structs {
         $count2 += 1;
     }
 
-    print "$count1 ($count2) structs found\n";
+    # print "$count1 ($count2) structs found\n";
     die unless $count1 == $count2;
 }
 
@@ -587,6 +661,10 @@ sub translate_type {
     # translate pointer type "ptr"
     while ($type =~ m/^([^\*]+)ptr(.*)$/) { # uintptr_t -> ctypes.POINTER(ctypes.c_uint)
        $type = "ctypes.POINTER($1)$2";
+    }
+
+    if ($type =~ /^void$/) {
+        $type = "None";
     }
 
     return $type;
