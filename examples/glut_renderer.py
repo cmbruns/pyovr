@@ -5,7 +5,7 @@ import math
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-from OpenGL.raw.GL.EXT.framebuffer_sRGB import glInitFramebufferSrgbEXT
+# from OpenGL.raw.GL.EXT.framebuffer_sRGB import glInitFramebufferSrgbEXT
 from OpenGL.GL.EXT.framebuffer_sRGB import *
 
 import ovr
@@ -34,9 +34,9 @@ class GlutRenderer():
         glutInitWindowPosition(50, 50)
         win = glutCreateWindow("Just a triangle")
         # glutHideWindow() # No rendering in Rift when this is uncommented
-        if glInitFramebufferSrgbEXT():
-            pass
-            glEnable(GL_FRAMEBUFFER_SRGB_EXT)
+        # if glInitFramebufferSrgbEXT():
+        #     pass
+        #     glEnable(GL_FRAMEBUFFER_SRGB_EXT)
         glViewport(0, 0, int(self.glut_window_width), int(self.glut_window_height))
         glutDisplayFunc(self.draw_scene)
         glutIdleFunc(self.draw_scene)
