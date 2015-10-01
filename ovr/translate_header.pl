@@ -5,8 +5,8 @@ use strict;
 use File::Basename;
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-# my $include_folder = "C:/Program Files/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
-my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
+my $include_folder = "C:/Program Files/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
 
 # 2) Edit this list to change the set of header files to translate
 my @header_files = (
@@ -21,6 +21,49 @@ my @header_files = (
 my $type_rx = '[^;\n(),\s/][^;\n(),/]*[^;\n(),\s/]'; # can have spaces, e.g. "const unsigned int"
 my $ident_rx = '[a-zA-Z0-9_]+'; # yes, initial underscores should be parsed too...
 my $comment_line_rx = '(?<=\n)[\ ]*(?://|/\*)[^\n]*\n';
+
+my %custom_methods = ();
+$custom_methods{"Quatf"} = [<<"END_EULER"
+
+    def getEulerAngles(self, axis1=0, axis2=1, axis3=2, rotate_direction=1, handedness=1):
+        assert(axis1 != axis2)
+        assert(axis1 != axis3)
+        assert(axis2 != axis3)
+        Q = [ self.x, self.y, self.z ]  # Quaternion components x,y,z
+        ww  = self.w*self.w;
+        Q11 = Q[axis1]*Q[axis1]
+        Q22 = Q[axis2]*Q[axis2]
+        Q33 = Q[axis3]*Q[axis3]
+        psign = -1.0
+        # Determine whether even permutation
+        if ((axis1 + 1) % 3 == axis2) and ((axis2 + 1) % 3 == axis3):
+            psign = 1.0
+        s2 = psign * 2.0 * (psign*self.w*Q[axis2] + Q[axis1]*Q[axis3])
+        SingularityRadius = 1e-10
+        D = rotate_direction # CCW rotation
+        S = handedness # Right handed coordinate system
+        if s2 < -1.0 + SingularityRadius:
+            # South pole singularity
+            a = 0.0
+            b = -S*D*math.pi/2
+            c = S*D*math.atan2(2.0*(psign*Q[axis1]*Q[axis2] + self.w*Q[axis3]),
+                           ww + Q22 - Q11 - Q33 )
+        elif s2 > 1.0 - SingularityRadius:
+            # North pole singularity
+            a = 0.0
+            b = S*D*math.pi/2
+            c = S*D*math.atan2(2.0*(psign*Q[axis1]*Q[axis2] + self.w*Q[axis3]),
+                           ww + Q22 - Q11 - Q33)
+        else:
+            a = -S*D*math.atan2(-2.0*(self.w*Q[axis1] - psign*Q[axis2]*Q[axis3]),
+                            ww + Q33 - Q11 - Q22)
+            b = S*D*math.asin(s2)
+            c = S*D*math.atan2(2.0*(self.w*Q[axis3] - psign*Q[axis1]*Q[axis2]),
+                           ww + Q11 - Q22 - Q33)     
+        return a, b, c
+END_EULER
+,];
+
 
 translate_header();
 
@@ -221,6 +264,7 @@ sub process_functions {
         my @arg_names = ();
         my @arg_types = ();
         my %types_by_arg = ();
+        my %byref_args = ();
 
         # Argument types for ctypes function
         if (defined($argument_list) and $argument_list =~ m/\S/) {
@@ -244,6 +288,10 @@ sub process_functions {
                 # Unspecified array type return value
                 elsif ($decoration =~ m/^\[\]$/) {
                     $type = "ctypes.POINTER($type)";
+                }
+
+                if ($type =~ /^ctypes.POINTER\(/) {
+                    $byref_args{$ident} = 1;
                 }
 
                 push @arg_names, $ident;
@@ -270,6 +318,7 @@ sub process_functions {
                 if ($types_by_arg{$arg_name} !~ m/ \* /) {
                     push @out_args, $arg_name;
                     $out_args_set{$arg_name} = 1;
+                    $byref_args{$arg_name} = 1;
                 }
             }
         }
@@ -297,11 +346,12 @@ sub process_functions {
         # Wrap output args with "byref"
         my @call_args = ();
         foreach my $arg (@arg_names) {
-            if (exists $out_args_set{$arg}) {
+            if (exists $byref_args{$arg}) {
                 $arg = "byref($arg)";
             }
             push @call_args, $arg;
         }
+
         # Delegated function call
         $trans .= "    result = "; # indent function call
         $trans .= "libovr.$fn_name(";
@@ -484,9 +534,20 @@ sub process_structs {
                 \s*
                 OVR_ON64\(
                 OVR_UNUSED_STRUCT_PAD\(
+                (\S+)
+                ,\s*
+                (\S+)
+                \)
+                (.*)
                 /x) 
             {
+                my $id = $1;
+                my $pad = $2;
+                my $rest = $3;
+
+                $rest = translate_comment($rest);
                 # TODO: eventually handle 64-bit padding correctly
+                $trans .= "        # skipping 64-bit only padding... # (\"$id\", ctypes.c_char * $pad), $rest\n";
             }
             else {
                 $line = translate_comment($line);
@@ -535,6 +596,13 @@ sub process_structs {
         }
         $trans .= join ", ", @args;
         $trans .= ")\n";
+
+        # Custom methods
+        if (exists $custom_methods{$class_name}) {
+            foreach my $method (@{$custom_methods{$class_name}}) {
+                $trans .= $method;
+            }
+        }
 
         $by_pos->{$p} = $trans;
 
@@ -617,11 +685,16 @@ sub process_enums {
         my $enum_name = $3;
         my $p = pos($code) - length($&);
 
+        my $trans = "";
+
         $comment = translate_comment($comment);
+        if (defined $comment) {
+            $trans .= "$comment";
+        }
 
         # 1) Declare type alias for enum
         $enum_name = translate_type($enum_name);
-        my $trans = "$enum_name = ENUM_TYPE\n";
+        $trans .= "$enum_name = ENUM_TYPE\n";
         # 2) Fill in contents
 
         my $prev_val = "";
@@ -640,6 +713,9 @@ sub process_enums {
                 my $equals = $2;
                 my $val = $3;
                 my $rest = $4;
+
+                # Skip "foo_EnumSize" entries
+                next if $id =~ m/_EnumSize/;
 
                 $id = translate_type($id);
                 $val = translate_type($val); # Might be another enum value

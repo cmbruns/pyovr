@@ -96,10 +96,10 @@ class GlutRenderer():
             glLoadIdentity()
             p = layer.RenderPose[eye].Position
             q = layer.RenderPose[eye].Orientation
-            pitch, yaw, roll = q.getPitchYawRoll()
-            glRotatef(-pitch*180/math.pi, 1, 0, 0)
-            glRotatef(-yaw*180/math.pi, 0, 1, 0)
+            pitch, yaw, roll = q.getEulerAngles()
             glRotatef(-roll*180/math.pi, 0, 0, 1)
+            glRotatef(-yaw*180/math.pi, 0, 1, 0)
+            glRotatef(-pitch*180/math.pi, 1, 0, 0)
             glTranslatef(-p.x, -p.y, -p.z)
             # Render the scene for this eye.
             if self.display_func is not None:

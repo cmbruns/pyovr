@@ -17,20 +17,6 @@ from OpenGL.GL.EXT.framebuffer_sRGB import *
 
 import ovr
 
-def pitchYawRoll_from_Quaternion(quat):
-    x = quat.x
-    y = quat.y
-    z = quat.z
-    w = quat.w # W is the rotation angle term
-    # shift to convention at https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-    q0 = w
-    q1 = x
-    q2 = y
-    q3 = z
-    phi = math.atan2(2*q0*q1 + 2*q2*q3, 1 - 2*q1*q1 - 2*q2*q2) # pitch
-    theta = math.asin(2*q0*q2 - 2*q3*q1) # yaw
-    psi = math.atan2(2*q0*q3 + 2*q1*q2, 1 - 2*q2*q2 - 2*q3*q3) # roll
-    return phi, theta, psi
 
 class RiftTriangle():
     "Example program for Oculus Rift rendering in python"
@@ -192,10 +178,10 @@ class RiftTriangle():
             p = self.layer.RenderPose[eye].Position
             # TODO: orientation
             q = self.layer.RenderPose[eye].Orientation
-            pitch, yaw, roll = pitchYawRoll_from_Quaternion(q)
-            glRotatef(-pitch*180/math.pi, 1, 0, 0)
-            glRotatef(-yaw*180/math.pi, 0, 1, 0)
+            pitch, yaw, roll = q.getEulerAngles()
             glRotatef(-roll*180/math.pi, 0, 0, 1)
+            glRotatef(-yaw*180/math.pi, 0, 1, 0)
+            glRotatef(-pitch*180/math.pi, 1, 0, 0)
             glTranslatef(-p.x, -p.y, -p.z)
             # print q, pitch, yaw, roll
             # sys.stdout.flush()

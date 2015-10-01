@@ -128,16 +128,43 @@ class Quatf(ctypes.Structure):
     def __repr__(self):
         return "Quatf(x=%f, y=%f, z=%f, w=%f)" % (self.x, self.y, self.z, self.w)
 
-    def getPitchYawRoll(self):
-        # shift to convention at https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-        q0 = self.w # rotation angle term
-        q1 = self.x
-        q2 = self.y
-        q3 = self.z
-        phi = math.atan2(2*q0*q1 + 2*q2*q3, 1 - 2*q1*q1 - 2*q2*q2) # pitch
-        theta = math.asin(2*q0*q2 - 2*q3*q1) # yaw
-        psi = math.atan2(2*q0*q3 + 2*q1*q2, 1 - 2*q2*q2 - 2*q3*q3) # roll
-        return phi, theta, psi
+    def getEulerAngles(self, axis1=0, axis2=1, axis3=2, rotate_direction=1, handedness=1):
+        assert(axis1 != axis2)
+        assert(axis1 != axis3)
+        assert(axis2 != axis3)
+        Q = [ self.x, self.y, self.z ]  # Quaternion components x,y,z
+        ww  = self.w*self.w;
+        Q11 = Q[axis1]*Q[axis1]
+        Q22 = Q[axis2]*Q[axis2]
+        Q33 = Q[axis3]*Q[axis3]
+        psign = -1.0
+        # Determine whether even permutation
+        if ((axis1 + 1) % 3 == axis2) and ((axis2 + 1) % 3 == axis3):
+            psign = 1.0
+        s2 = psign * 2.0 * (psign*self.w*Q[axis2] + Q[axis1]*Q[axis3])
+        SingularityRadius = 1e-10
+        D = rotate_direction # CCW rotation
+        S = handedness # Right handed coordinate system
+        if s2 < -1.0 + SingularityRadius:
+            # South pole singularity
+            a = 0.0
+            b = -S*D*math.pi/2
+            c = S*D*math.atan2(2.0*(psign*Q[axis1]*Q[axis2] + self.w*Q[axis3]),
+                           ww + Q22 - Q11 - Q33 )
+        elif s2 > 1.0 - SingularityRadius:
+            # North pole singularity
+            a = 0.0
+            b = S*D*math.pi/2
+            c = S*D*math.atan2(2.0*(psign*Q[axis1]*Q[axis2] + self.w*Q[axis3]),
+                           ww + Q22 - Q11 - Q33)
+        else:
+            a = -S*D*math.atan2(-2.0*(self.w*Q[axis1] - psign*Q[axis2]*Q[axis3]),
+                            ww + Q33 - Q11 - Q22)
+            b = S*D*math.asin(s2)
+            c = S*D*math.atan2(2.0*(self.w*Q[axis3] - psign*Q[axis1]*Q[axis2]),
+                           ww + Q11 - Q22 - Q33)     
+        return a, b, c
+
 
 
 # OVR_CAPI_0_7_0.h line 312
@@ -1874,7 +1901,7 @@ getEyePoses = libovr.ovr_GetEyePoses
 # Run test program
 if __name__ == "__main__":
     # Transcribed from initial example at 
-    # https://developer.oculus.com/documentation/pcsdk/latest/concepts/dg-sensor/
+    # https:#developer.oculus.com/documentation/pcsdk/latest/concepts/dg-sensor/
     initialize(None)
     hmd, luid = create()
     desc = getHmdDesc(hmd)
