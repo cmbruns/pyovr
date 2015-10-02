@@ -19,7 +19,7 @@ OVR_PTR_SIZE = ctypes.sizeof(ctypes.c_voidp) # distinguish 32 vs 64 bit python
 # 1) Figure out name of library to load
 _libname = "OVRRT32_0_7" # 32-bit python
 if OVR_PTR_SIZE == 8:
-    _libname = OVRRT64_0_7 # 64-bit python
+    _libname = "OVRRT64_0_7" # 64-bit python
 if platform.system().startswith("Win"):
     _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_7"
 # Load library
@@ -1958,7 +1958,7 @@ def createSwapTextureSetGL(hmd, format, width, height):
 # Translated from header file OVR_CAPI_GL.h line 73
 libovr.ovr_CreateMirrorTextureGL.restype = Result
 libovr.ovr_CreateMirrorTextureGL.argtypes = [Hmd, GLuint, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.POINTER(Texture))]
-def createMirrorTextureGL(hmd, format, width, height):
+def createMirrorTextureGL(hmd, format_, width, height):
     """
     Creates a Mirror Texture which is auto-refreshed to mirror Rift contents produced by this application.
     
@@ -1984,7 +1984,7 @@ def createMirrorTextureGL(hmd, format, width, height):
     \see ovr_DestroyMirrorTexture
     """
     outMirrorTexture = ctypes.POINTER(Texture)()
-    result = libovr.ovr_CreateMirrorTextureGL(hmd, format, width, height, None if outMirrorTexture is None else byref(outMirrorTexture))
+    result = libovr.ovr_CreateMirrorTextureGL(hmd, format_, width, height, None if outMirrorTexture is None else byref(outMirrorTexture))
     if FAILURE(result):
         raise Exception("Call to function createMirrorTextureGL failed")    
     return outMirrorTexture
@@ -2122,6 +2122,77 @@ def getEyePoses(hmd, frameIndex, hmdToEyeViewOffset, outEyePoses):
 
 
 ### END Declarations from C header file OVR_CAPI_Util.h ###
+
+
+try:
+    OVR_KEY_USER = 'User'
+except:
+    pass
+
+try:
+    OVR_KEY_NAME = 'Name'
+except:
+    pass
+
+try:
+    OVR_KEY_GENDER = 'Gender'
+except:
+    pass
+
+try:
+    OVR_KEY_PLAYER_HEIGHT = 'PlayerHeight'
+except:
+    pass
+
+try:
+    OVR_KEY_EYE_HEIGHT = 'EyeHeight'
+except:
+    pass
+
+try:
+    OVR_KEY_IPD = 'IPD'
+except:
+    pass
+
+try:
+    OVR_KEY_NECK_TO_EYE_DISTANCE = 'NeckEyeDistance'
+except:
+    pass
+
+try:
+    OVR_DEFAULT_GENDER = 'Unknown'
+except:
+    pass
+
+try:
+    OVR_DEFAULT_PLAYER_HEIGHT = 1.778
+except:
+    pass
+
+try:
+    OVR_DEFAULT_EYE_HEIGHT = 1.675
+except:
+    pass
+
+try:
+    OVR_DEFAULT_IPD = 0.064
+except:
+    pass
+
+try:
+    OVR_DEFAULT_NECK_TO_EYE_HORIZONTAL = 0.0805
+except:
+    pass
+
+try:
+    OVR_DEFAULT_NECK_TO_EYE_VERTICAL = 0.075
+except:
+    pass
+
+try:
+    OVR_DEFAULT_EYE_RELIEF_DIAL = 3
+except:
+    pass
 
 
 # Run test program
