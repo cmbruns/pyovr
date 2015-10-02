@@ -29,7 +29,7 @@ class GlutRenderer():
         self.glut_window_width = width
         self.glut_window_height = height
         glutInit()
-        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE)
+        glutInitDisplayMode(GLUT_RGBA)
         glutInitWindowSize(self.glut_window_width, self.glut_window_height)
         glutInitWindowPosition(50, 50)
         win = glutCreateWindow("Just a triangle")
