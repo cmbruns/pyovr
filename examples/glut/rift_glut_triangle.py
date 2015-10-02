@@ -89,8 +89,8 @@ class RiftTriangle():
         layer.ColorTexture[1]  = self.pTextureSet # single texture for both eyes
         layer.Fov[0]           = eyeRenderDesc[0].Fov
         layer.Fov[1]           = eyeRenderDesc[1].Fov
-        layer.Viewport[0]      = ovr.Recti(0, 0,                bufferSize.w / 2, bufferSize.h)
-        layer.Viewport[1]      = ovr.Recti(bufferSize.w / 2, 0, bufferSize.w / 2, bufferSize.h)
+        layer.Viewport[0]      = ovr.Recti(ovr.Vector2i(0, 0),                ovr.Sizei(bufferSize.w / 2, bufferSize.h))
+        layer.Viewport[1]      = ovr.Recti(ovr.Vector2i(bufferSize.w / 2, 0), ovr.Sizei(bufferSize.w / 2, bufferSize.h))
         self.layer = layer
         v = self.layer.Viewport[0]
         # print v.Pos.x, v.Pos.y, v.Size.w, v.Size.h

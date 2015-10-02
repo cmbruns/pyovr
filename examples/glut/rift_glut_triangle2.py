@@ -6,7 +6,7 @@
 
 from OpenGL.GL import *
 
-from hmd import Hmd
+from ovr.hmd_wrapper import HmdWrapper
 from glut_renderer import GlutRenderer
 
 
@@ -25,7 +25,7 @@ def display():
 
 with GlutRenderer() as r:
     r.set_display_func(display)
-    with Hmd() as h:
+    with HmdWrapper() as h:
         r.set_hmd(h)
         r.run_main_loop()
 

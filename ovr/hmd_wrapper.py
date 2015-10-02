@@ -4,7 +4,7 @@ from OpenGL.GL import GL_SRGB8_ALPHA8
 
 import ovr
 
-class Hmd():
+class HmdWrapper():
     
     def __init__(self):
         self.hmd = None
