@@ -90,8 +90,18 @@ class HmdWrapper():
             ovr.destroy(self.hmd)
         ovr.shutdown()        
 
-    def recenter_hmd(self):
+    def recenter_pose(self):
         ovr.recenterPose(self.hmd)
+
+    def submit_frame(self):
+        # 2c) Call ovr_SubmitFrame, passing swap texture set(s) from the previous step within a ovrLayerEyeFov structure. Although a single layer is required to submit a frame, you can use multiple layers and layer types for advanced rendering. ovr_SubmitFrame passes layer textures to the compositor which handles distortion, timewarp, and GPU synchronization before presenting it to the headset. 
+        layers = self.layer.Header
+        viewScale = ovr.ViewScaleDesc()
+        viewScale.HmdSpaceToWorldScaleInMeters = 1.0
+        viewScale.HmdToEyeViewOffset[0] = self.hmdToEyeViewOffset[0]
+        viewScale.HmdToEyeViewOffset[1] = self.hmdToEyeViewOffset[1]
+        result = ovr.submitFrame(self.hmd, self.frame_index, viewScale, layers, 1)
+        self.frame_index += 1
 
     def update_gl_poses(self):
         # 2a) Use ovr_GetTrackingState and ovr_CalcEyePoses to compute eye poses needed for view rendering based on frame timing information
@@ -107,13 +117,3 @@ class HmdWrapper():
         tsc.CurrentIndex = (tsc.CurrentIndex + 1) % tsc.TextureCount
         texture = ctypes.cast(ctypes.addressof(tsc.Textures[tsc.CurrentIndex]), ctypes.POINTER(ovr.GLTexture)).contents
         return self.layer, texture.OGL.TexId
-
-    def submit_frame(self):
-        # 2c) Call ovr_SubmitFrame, passing swap texture set(s) from the previous step within a ovrLayerEyeFov structure. Although a single layer is required to submit a frame, you can use multiple layers and layer types for advanced rendering. ovr_SubmitFrame passes layer textures to the compositor which handles distortion, timewarp, and GPU synchronization before presenting it to the headset. 
-        layers = self.layer.Header
-        viewScale = ovr.ViewScaleDesc()
-        viewScale.HmdSpaceToWorldScaleInMeters = 1.0
-        viewScale.HmdToEyeViewOffset[0] = self.hmdToEyeViewOffset[0]
-        viewScale.HmdToEyeViewOffset[1] = self.hmdToEyeViewOffset[1]
-        result = ovr.submitFrame(self.hmd, self.frame_index, viewScale, layers, 1)
-        self.frame_index += 1

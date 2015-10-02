@@ -1054,6 +1054,7 @@ def create():
     pLuid = GraphicsLuid()
     result = libovr.ovr_Create(None if pHmd is None else byref(pHmd), None if pLuid is None else byref(pLuid))
     if FAILURE(result):
+        print "*** Is your Oculus Rift turned on? ***"
         raise Exception("Call to function create failed")    
     return pHmd, pLuid
 

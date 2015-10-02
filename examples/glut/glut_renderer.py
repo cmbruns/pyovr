@@ -121,7 +121,7 @@ class GlutRenderer():
             else:
                 raise Exception("Application quit")
         if key == "r":
-            self.hmd.recenter_hmd()
+            self.hmd.recenter_pose()
 
     def resize_console(self, width, height):
         if height == 0:
