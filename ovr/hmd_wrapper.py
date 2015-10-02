@@ -116,5 +116,4 @@ class HmdWrapper():
         viewScale.HmdToEyeViewOffset[0] = self.hmdToEyeViewOffset[0]
         viewScale.HmdToEyeViewOffset[1] = self.hmdToEyeViewOffset[1]
         result = ovr.submitFrame(self.hmd, self.frame_index, viewScale, layers, 1)
-        # print result
         self.frame_index += 1
