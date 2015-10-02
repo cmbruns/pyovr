@@ -336,6 +336,20 @@ sub process_functions {
         # Docstring
         $trans .= translate_docstring_comment($comment);
 
+        # Special case for submitFrame method
+        foreach my $arg (@arg_names) {
+            # Only non-output POINTER(POINTER(...)) arguments.
+            # i.e. Only submitFrame(layerPtrList) argument.
+            next unless exists $byref_args{$arg};
+            next if exists $out_args_set{$arg};
+            next unless $types_by_arg{$arg} =~ m/^ctypes\.POINTER\((ctypes\.POINTER\(\S*\s*\))\s*\)/;
+            print $types_by_arg{$arg}, "\n";
+            print $arg, "\n";
+            my $pointee_type = $1;
+            print $pointee_type, "\n";
+            $trans .= "    $arg = $pointee_type($arg)\n";
+        }        
+
         # Declare local variables for output arguments
         foreach my $arg (@out_args) {
             my $type = $types_by_arg{$arg};
@@ -347,7 +361,7 @@ sub process_functions {
         my @call_args = ();
         foreach my $arg (@arg_names) {
             if (exists $byref_args{$arg}) {
-                $arg = "byref($arg)";
+                $arg = "None if $arg is None else byref($arg)";
             }
             push @call_args, $arg;
         }
@@ -471,7 +485,6 @@ sub process_structs {
         $trans .= "    _fields_ = [\n";
 
         my @fields = ();
-        my @init_fields = (); # fields that will have constructor initializers
 
         foreach my $line (split "\n", $body) {
             # "int w, h;"
@@ -497,16 +510,9 @@ sub process_structs {
 
                 $rest = translate_comment($rest);
                 $type = translate_type($type);
-                my $do_init_field = 0; # default to not initialize field in constructor
-                # do initialize built-in float, int types
-                if ($type =~ m/^ctypes\.c_(?:float|double|u?int|u?short)/) {
-                    # print "found initializable type $type\n";
-                    $do_init_field = 1;
-                }
                 if (defined $count) {
                     $count = translate_type($count);
                     $type = "$type * $count";
-                    # $do_init_field = 0; # don't initialize arrays of ints, etc.
                 }
                 if (defined $count2) {
                     $count2 = translate_type($count2);
@@ -518,9 +524,6 @@ sub process_structs {
                     $trans .= "        (\"$ident\", $type), $rest\n";
                     my @p = ($ident, $type);
                     push @fields, \@p;
-                    if ($do_init_field) {
-                        push @init_fields, $ident;
-                    }
                 }
             }
             elsif ($line =~ m/^
@@ -567,21 +570,6 @@ sub process_structs {
             }
         }
         $trans .= "    ]\n"; # end fields
-
-        # Constructor
-        if ($#init_fields >= 0) {
-            $trans .= "\n    def __init__(self, ";
-            my @args_with_init = ();
-            foreach my $a (@init_fields) {
-                push @args_with_init, "$a=0"; # set default value
-            }
-            $trans .= join ", ", @args_with_init;
-            $trans .= "):\n";
-            $trans .= "        super($class_name, self).__init__()\n";
-            foreach my $a (@init_fields) { # initializers
-                $trans .= "        self.$a = $a\n";
-            }
-        }
 
         # String representation
         $trans .= "\n    def __repr__(self):\n        return \"ovr.$class_name(";
@@ -831,7 +819,7 @@ sub translate_type {
         $type = ucfirst($1); # capitalize first letter of types
     }
     # translate pointer type "*"
-    while ($type =~ m/^([^\*]+)\*(.*)$/) { # HmdStruct* -> ctypes.POINTER(HmdStruct)
+    while ($type =~ m/^([^\*]+\S)\s*\*(.*)$/) { # HmdStruct* -> ctypes.POINTER(HmdStruct)
        $type = "ctypes.POINTER($1)$2";
     }
     # translate pointer type "ptr"
