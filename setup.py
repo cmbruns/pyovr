@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 
-_PYOVR_VERSION = "0.7.0002" # Two digits for Oculus minor revision, two digits for wrapper version
+_PYOVR_VERSION = "0.7.0003" # Two digits for Oculus minor revision, two digits for wrapper version
 
 setup(
     name = "ovr",

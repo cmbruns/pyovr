@@ -6,6 +6,7 @@ import ovr
 class TestProperties(unittest.TestCase):
 
     def setUp(self):
+        ovr.initialize(None)
         self.hmd, luid = ovr.create()
 
     def tearDown(self):
@@ -20,6 +21,5 @@ class TestProperties(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    ovr.initialize(None)
     unittest.main()
     ovr.shutdown()        
