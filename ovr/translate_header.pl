@@ -26,35 +26,38 @@ my $comment_line_rx = '(?<=\n)[\ ]*(?://|/\*)[^\n]*\n';
 
 # Some types should act like python sequences
 
-my @sequence_types = ["Vector2i", "Sizei", "Vector2f", 
-        "Quatf", "Vector2f", "Vector3f"];
-
-my @sequence_methods = [
+my @sequence_methods = (
 <<"END_LEN"
+
     def __len__(self):
+        "number of items in this container"
         return len(self._fields_)
 END_LEN
 ,
 <<"END_GETITEM"
+
     def __getitem__(self, key):
-        # TODO: Key could be integer or slice
-        field = self_fields_[key]
-        item = getattr(self, field[0])
-        return item
+        "access contained elements"
+        if isinstance(key, slice):
+            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+        else:
+            return getattr(self, self._fields_[key][0])
 END_GETITEM
 ,
-<<"END_SETITEM"
-    def __setitem__(self, key, value):
-        # TODO: Key could be integer or slice
-        field = self_fields_[key]
-        item = getattr(self, field[0])
-        item = value
-END_SETITEM
-,
-];
+);
 
 my %custom_methods = ();
-$custom_methods{"Quatf"} = [<<"END_EULER"
+# Treat some wrapped classes as containers
+foreach my $seq_type ("Vector2i", "Sizei", "Vector2f", 
+        "Vector2f", "Vector3f") 
+{
+    $custom_methods{$seq_type} = \@sequence_methods;
+}
+
+my @sequence_methods_quat = @sequence_methods; # copy array
+$custom_methods{"Quatf"} = \@sequence_methods_quat;
+push @{$custom_methods{"Quatf"}}, (
+<<"END_EULER"
 
     def getEulerAngles(self, axis1=0, axis2=1, axis3=2, rotate_direction=1, handedness=1):
         assert(axis1 != axis2)
@@ -93,8 +96,23 @@ $custom_methods{"Quatf"} = [<<"END_EULER"
                            ww + Q11 - Q22 - Q33)     
         return a, b, c
 END_EULER
-,];
+,
+);
 
+push @{$custom_methods{"Matrix4f"}}, (
+<<"END_MATMETH"
+
+    def __len__(self):
+        "number of items in this container"
+        return 16
+
+    def __getitem__(self, key):
+        "access contained elements as a single flat list"
+        i = int(key/4)
+        j = key % 4
+        return self.M[j][i]
+END_MATMETH
+);
 
 translate_header();
 
@@ -1121,16 +1139,16 @@ sub translate_type {
     $type =~ s/_t\b//g; # int32_t => int32
     $type =~ s/\bunsigned\s+/u/g; # unsigned int => uint
     # translate to ctypes type name
+    # C strings
+    if ($type =~ m/^\s*(?:const\s+)?char\s*\*\s*$/) {
+        $type = "c_char_p"; # strings
+    }
     if ($type =~ m/^(float|u?int|double|u?char|u?short|u?long)/) {
         $type = "c_$type";
     }
     # remove leading "ovr" or "ovr_"
     if ($type =~ m/^ovr_?(.*)$/) {
         $type = ucfirst($1); # capitalize first letter of types
-    }
-    # C strings
-    if ($type =~ m/^\s*(?:const\s+)?char\s*\*\s*$/) {
-        $type = "c_char_p"; # strings
     }
     # translate pointer type "*"
     while ($type =~ m/^([^\*]+\S)\s*\*(.*)$/) { # HmdStruct* -> POINTER(HmdStruct)

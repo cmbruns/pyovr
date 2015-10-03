@@ -12,14 +12,14 @@ def ovrPoseToMat4(pose):
   rot = pose.Orientation
   # Convert the OVR orientation (a quaternion structure) to a cgkit quaternion 
   # class, and from there to a mat4  Coordinates are camera coordinates
-  rot = quat(rot.toList())
+  rot = quat(rot[-1:]+rot[:-1]) # reorder xyzw -> wxyz
   rot = rot.toMat4()
 
   # Apply the head position
   pos = pose.Position
   # Convert the OVR position (a vector3 structure) to a cgcit vector3 class. 
   # Position is in camera / Rift coordinates
-  pos = vec3(pos.toList())
+  pos = vec3(pos)
   pos = mat4(1.0).translate(pos)
   
   pose = pos * rot
@@ -138,7 +138,7 @@ class RiftDemo(RiftApp):
     cameraview = self.camera * eyeview  
 
     glMatrixMode(GL_PROJECTION)
-    glLoadMatrixf(self.projections[eye].toList())
+    glLoadMatrixf(list(self.projections[eye]))
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity();
