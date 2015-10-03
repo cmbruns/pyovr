@@ -5,7 +5,7 @@ import ovr
 
 from RiftApp import RiftApp
 from cgkit.cgtypes import mat4, vec3, quat
-from OpenGL.GL import *
+from OpenGL.GL import *   #@UnusedWildImport
 
 def ovrPoseToMat4(pose):
   # Apply the head orientation
@@ -25,7 +25,7 @@ def ovrPoseToMat4(pose):
   pose = pos * rot
   return pose
 
-
+# FIXME shitty non-Core profile rendering code
 def draw_color_cube(size=1.0):
   p = size / 2.0
   n = -p
@@ -73,8 +73,7 @@ def draw_color_cube(size=1.0):
 class RiftDemo(RiftApp):
   def __init__(self):
     RiftApp.__init__(self)
-    self.cube_size = ovr.getFloat(self.hmd, 
-      ovr.KEY_IPD, ovr.DEFAULT_IPD)
+    self.cube_size = self.rift.get_float(ovr.KEY_IPD, ovr.DEFAULT_IPD)
     self.reset_camera()
     
   def reset_camera(self):
@@ -82,7 +81,7 @@ class RiftDemo(RiftApp):
     self.camera.translate(vec3(0, 0, 0.2))
 
   def recompose_camera(self):
-    (tr, rot, sc) = self.camera.decompose()
+    (tr, rot, _) = self.camera.decompose()
     self.camera = mat4(1.0)
     self.camera.translate(tr)
     self.camera = self.camera * rot
@@ -113,7 +112,7 @@ class RiftDemo(RiftApp):
     # Modify direction vectors for key presses
     translation = vec3()
     if pressed[pgl.K_r]:
-      ovr.recenterPose(self.hmd)
+      self.rift.recenter_pose()
     if pressed[pgl.K_w]:
       translation.z = -1.0
     elif pressed[pgl.K_s]:
@@ -137,6 +136,7 @@ class RiftDemo(RiftApp):
     # apply the camera position
     cameraview = self.camera * eyeview  
 
+    # FIXME deprecated GL functions must die
     glMatrixMode(GL_PROJECTION)
     glLoadMatrixf(list(self.projections[eye]))
 
