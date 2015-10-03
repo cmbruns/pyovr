@@ -8,6 +8,8 @@
 
 If the above command fails, you might need to install `pip` http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows
 
+Alternatively, you can get the pyovr installer at github: https://github.com/cmbruns/pyovr/releases
+
 ## Use
 
 ```python
