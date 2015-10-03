@@ -6,7 +6,7 @@ Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
 
 import ctypes
-from ctypes import byref
+from ctypes import *
 import sys
 import textwrap
 import math
@@ -19,7 +19,7 @@ OVR_PTR_SIZE = ctypes.sizeof(ctypes.c_voidp) # distinguish 32 vs 64 bit python
 # 1) Figure out name of library to load
 _libname = "OVRRT32_0_7" # 32-bit python
 if OVR_PTR_SIZE == 8:
-    _libname = OVRRT64_0_7 # 64-bit python
+    _libname = "OVRRT64_0_7" # 64-bit python
 if platform.system().startswith("Win"):
     _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_7"
 # Load library
@@ -355,6 +355,9 @@ class Quatf(ctypes.Structure):
     def __repr__(self):
         return "ovr.Quatf(%s, %s, %s, %s)" % (self.x, self.y, self.z, self.w)
 
+    def toList(self):
+      return (self.w, self.x, self.y, self.z)
+
     def getEulerAngles(self, axis1=0, axis2=1, axis3=2, rotate_direction=1, handedness=1):
         assert(axis1 != axis2)
         assert(axis1 != axis3)
@@ -405,6 +408,9 @@ class Vector2f(ctypes.Structure):
     def __repr__(self):
         return "ovr.Vector2f(%s, %s)" % (self.x, self.y)
 
+    def toList(self):
+      return (self.x, self.y)
+
 
 # Translated from header file OVR_CAPI_0_7_0.h line 316
 class Vector3f(ctypes.Structure):
@@ -419,6 +425,8 @@ class Vector3f(ctypes.Structure):
     def __repr__(self):
         return "ovr.Vector3f(%s, %s, %s)" % (self.x, self.y, self.z)
 
+    def toList(self):
+      return (self.x, self.y, self.z)
 
 # Translated from header file OVR_CAPI_0_7_0.h line 322
 class Matrix4f(ctypes.Structure):
@@ -430,6 +438,17 @@ class Matrix4f(ctypes.Structure):
 
     def __repr__(self):
         return "ovr.Matrix4f(%s)" % (self.M)
+      
+    def toList(self, Transpose = False):
+      mm = []
+      for i in range(0, 4):
+        for j in range(0, 4):
+          if (Transpose):
+            mm.append(self.M[i][j])
+          else:
+            mm.append(self.M[j][i])
+      return tuple(mm)
+      
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 329
@@ -1861,9 +1880,244 @@ def resetMulticameraTracking(hmd):
     return result
 
 
+
+class UserString:
+    def __init__(self, seq):
+        if isinstance(seq, basestring):
+            self.data = seq
+        elif isinstance(seq, UserString):
+            self.data = seq.data[:]
+        else:
+            self.data = str(seq)
+    def __str__(self): return str(self.data)
+    def __repr__(self): return repr(self.data)
+    def __int__(self): return int(self.data)
+    def __long__(self): return long(self.data)
+    def __float__(self): return float(self.data)
+    def __complex__(self): return complex(self.data)
+    def __hash__(self): return hash(self.data)
+
+    def __cmp__(self, string):
+        if isinstance(string, UserString):
+            return cmp(self.data, string.data)
+        else:
+            return cmp(self.data, string)
+    def __contains__(self, char):
+        return char in self.data
+
+    def __len__(self): return len(self.data)
+    def __getitem__(self, index): return self.__class__(self.data[index])
+    def __getslice__(self, start, end):
+        start = max(start, 0); end = max(end, 0)
+        return self.__class__(self.data[start:end])
+
+    def __add__(self, other):
+        if isinstance(other, UserString):
+            return self.__class__(self.data + other.data)
+        elif isinstance(other, basestring):
+            return self.__class__(self.data + other)
+        else:
+            return self.__class__(self.data + str(other))
+    def __radd__(self, other):
+        if isinstance(other, basestring):
+            return self.__class__(other + self.data)
+        else:
+            return self.__class__(str(other) + self.data)
+    def __mul__(self, n):
+        return self.__class__(self.data*n)
+    __rmul__ = __mul__
+    def __mod__(self, args):
+        return self.__class__(self.data % args)
+
+    # the following methods are defined in alphabetical order:
+    def capitalize(self): return self.__class__(self.data.capitalize())
+    def center(self, width, *args):
+        return self.__class__(self.data.center(width, *args))
+    def count(self, sub, start=0, end=sys.maxint):
+        return self.data.count(sub, start, end)
+    def decode(self, encoding=None, errors=None): # XXX improve this?
+        if encoding:
+            if errors:
+                return self.__class__(self.data.decode(encoding, errors))
+            else:
+                return self.__class__(self.data.decode(encoding))
+        else:
+            return self.__class__(self.data.decode())
+    def encode(self, encoding=None, errors=None): # XXX improve this?
+        if encoding:
+            if errors:
+                return self.__class__(self.data.encode(encoding, errors))
+            else:
+                return self.__class__(self.data.encode(encoding))
+        else:
+            return self.__class__(self.data.encode())
+    def endswith(self, suffix, start=0, end=sys.maxint):
+        return self.data.endswith(suffix, start, end)
+    def expandtabs(self, tabsize=8):
+        return self.__class__(self.data.expandtabs(tabsize))
+    def find(self, sub, start=0, end=sys.maxint):
+        return self.data.find(sub, start, end)
+    def index(self, sub, start=0, end=sys.maxint):
+        return self.data.index(sub, start, end)
+    def isalpha(self): return self.data.isalpha()
+    def isalnum(self): return self.data.isalnum()
+    def isdecimal(self): return self.data.isdecimal()
+    def isdigit(self): return self.data.isdigit()
+    def islower(self): return self.data.islower()
+    def isnumeric(self): return self.data.isnumeric()
+    def isspace(self): return self.data.isspace()
+    def istitle(self): return self.data.istitle()
+    def isupper(self): return self.data.isupper()
+    def join(self, seq): return self.data.join(seq)
+    def ljust(self, width, *args):
+        return self.__class__(self.data.ljust(width, *args))
+    def lower(self): return self.__class__(self.data.lower())
+    def lstrip(self, chars=None): return self.__class__(self.data.lstrip(chars))
+    def partition(self, sep):
+        return self.data.partition(sep)
+    def replace(self, old, new, maxsplit=-1):
+        return self.__class__(self.data.replace(old, new, maxsplit))
+    def rfind(self, sub, start=0, end=sys.maxint):
+        return self.data.rfind(sub, start, end)
+    def rindex(self, sub, start=0, end=sys.maxint):
+        return self.data.rindex(sub, start, end)
+    def rjust(self, width, *args):
+        return self.__class__(self.data.rjust(width, *args))
+    def rpartition(self, sep):
+        return self.data.rpartition(sep)
+    def rstrip(self, chars=None): return self.__class__(self.data.rstrip(chars))
+    def split(self, sep=None, maxsplit=-1):
+        return self.data.split(sep, maxsplit)
+    def rsplit(self, sep=None, maxsplit=-1):
+        return self.data.rsplit(sep, maxsplit)
+    def splitlines(self, keepends=0): return self.data.splitlines(keepends)
+    def startswith(self, prefix, start=0, end=sys.maxint):
+        return self.data.startswith(prefix, start, end)
+    def strip(self, chars=None): return self.__class__(self.data.strip(chars))
+    def swapcase(self): return self.__class__(self.data.swapcase())
+    def title(self): return self.__class__(self.data.title())
+    def translate(self, *args):
+        return self.__class__(self.data.translate(*args))
+    def upper(self): return self.__class__(self.data.upper())
+    def zfill(self, width): return self.__class__(self.data.zfill(width))
+
+class MutableString(UserString):
+    """mutable string objects
+
+    Python strings are immutable objects.  This has the advantage, that
+    strings may be used as dictionary keys.  If this property isn't needed
+    and you insist on changing string values in place instead, you may cheat
+    and use MutableString.
+
+    But the purpose of this class is an educational one: to prevent
+    people from inventing their own mutable string class derived
+    from UserString and than forget thereby to remove (override) the
+    __hash__ method inherited from UserString.  This would lead to
+    errors that would be very hard to track down.
+
+    A faster and better solution is to rewrite your program using lists."""
+    def __init__(self, string=""):
+        self.data = string
+    def __hash__(self):
+        raise TypeError("unhashable type (it is mutable)")
+    def __setitem__(self, index, sub):
+        if index < 0:
+            index += len(self.data)
+        if index < 0 or index >= len(self.data): raise IndexError
+        self.data = self.data[:index] + sub + self.data[index+1:]
+    def __delitem__(self, index):
+        if index < 0:
+            index += len(self.data)
+        if index < 0 or index >= len(self.data): raise IndexError
+        self.data = self.data[:index] + self.data[index+1:]
+    def __setslice__(self, start, end, sub):
+        start = max(start, 0); end = max(end, 0)
+        if isinstance(sub, UserString):
+            self.data = self.data[:start]+sub.data+self.data[end:]
+        elif isinstance(sub, basestring):
+            self.data = self.data[:start]+sub+self.data[end:]
+        else:
+            self.data =  self.data[:start]+str(sub)+self.data[end:]
+    def __delslice__(self, start, end):
+        start = max(start, 0); end = max(end, 0)
+        self.data = self.data[:start] + self.data[end:]
+    def immutable(self):
+        return UserString(self.data)
+    def __iadd__(self, other):
+        if isinstance(other, UserString):
+            self.data += other.data
+        elif isinstance(other, basestring):
+            self.data += other
+        else:
+            self.data += str(other)
+        return self
+    def __imul__(self, n):
+        self.data *= n
+        return self
+
+def POINTER(obj):
+    p = ctypes.POINTER(obj)
+
+    # Convert None to a real NULL pointer to work around bugs
+    # in how ctypes handles None on 64-bit platforms
+    if not isinstance(p.from_param, classmethod):
+        def from_param(cls, x):
+            if x is None:
+                return cls()
+            else:
+                return x
+        p.from_param = classmethod(from_param)
+
+    return p
+      
+class String(MutableString, Union):
+
+    _fields_ = [('raw', POINTER(c_char)),
+                ('data', c_char_p)]
+
+    def __init__(self, obj=""):
+        if isinstance(obj, (str, unicode, UserString)):
+            self.data = str(obj)
+        else:
+            self.raw = obj
+
+    def __len__(self):
+        return self.data and len(self.data) or 0
+
+    def from_param(cls, obj):
+        # Convert None or 0
+        if obj is None or obj == 0:
+            return cls(POINTER(c_char)())
+
+        # Convert from String
+        elif isinstance(obj, String):
+            return obj
+
+        # Convert from str
+        elif isinstance(obj, str):
+            return cls(obj)
+
+        # Convert from c_char_p
+        elif isinstance(obj, c_char_p):
+            return obj
+
+        # Convert from POINTER(c_char)
+        elif isinstance(obj, POINTER(c_char)):
+            return obj
+
+        # Convert from raw pointer
+        elif isinstance(obj, int):
+            return cls(cast(obj, POINTER(c_char)))
+
+        # Convert from object
+        else:
+            return String.from_param(obj._as_parameter_)
+    from_param = classmethod(from_param)
+
+
 # Translated from header file OVR_CAPI_0_7_0.h line 1678
 libovr.ovr_GetBool.restype = Bool
-libovr.ovr_GetBool.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), Bool]
+libovr.ovr_GetBool.argtypes = [Hmd, String, Bool]
 def getBool(hmd, propertyName, defaultVal):
     """
     Reads a boolean property.
@@ -1874,13 +2128,13 @@ def getBool(hmd, propertyName, defaultVal):
     \return Returns the property interpreted as a boolean value. Returns defaultVal if
             the property doesn't exist.
     """
-    result = libovr.ovr_GetBool(hmd, None if propertyName is None else byref(propertyName), defaultVal)
+    result = libovr.ovr_GetBool(hmd, None if propertyName is None else propertyName, defaultVal)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1687
 libovr.ovr_SetBool.restype = Bool
-libovr.ovr_SetBool.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), Bool]
+libovr.ovr_SetBool.argtypes = [Hmd, String, Bool]
 def setBool(hmd, propertyName, value):
     """
     Writes or creates a boolean property.
@@ -1892,13 +2146,13 @@ def setBool(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetBool(hmd, None if propertyName is None else byref(propertyName), value)
+    result = libovr.ovr_SetBool(hmd, None if propertyName is None else propertyName, value)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1698
 libovr.ovr_GetInt.restype = ctypes.c_int
-libovr.ovr_GetInt.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.c_int]
+libovr.ovr_GetInt.argtypes = [Hmd, String, ctypes.c_int]
 def getInt(hmd, propertyName, defaultVal):
     """
     Reads an integer property.
@@ -1909,13 +2163,13 @@ def getInt(hmd, propertyName, defaultVal):
     \return Returns the property interpreted as an integer value. Returns defaultVal if
             the property doesn't exist.
     """
-    result = libovr.ovr_GetInt(hmd, None if propertyName is None else byref(propertyName), defaultVal)
+    result = libovr.ovr_GetInt(hmd, None if propertyName is None else propertyName, defaultVal)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1707
 libovr.ovr_SetInt.restype = Bool
-libovr.ovr_SetInt.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.c_int]
+libovr.ovr_SetInt.argtypes = [Hmd, String, ctypes.c_int]
 def setInt(hmd, propertyName, value):
     """
     Writes or creates an integer property.
@@ -1928,13 +2182,13 @@ def setInt(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetInt(hmd, None if propertyName is None else byref(propertyName), value)
+    result = libovr.ovr_SetInt(hmd, None if propertyName is None else propertyName, value)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1719
 libovr.ovr_GetFloat.restype = ctypes.c_float
-libovr.ovr_GetFloat.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.c_float]
+libovr.ovr_GetFloat.argtypes = [Hmd, String, ctypes.c_float]
 def getFloat(hmd, propertyName, defaultVal):
     """
     Reads a float property.
@@ -1945,13 +2199,13 @@ def getFloat(hmd, propertyName, defaultVal):
     \return Returns the property interpreted as an float value. Returns defaultVal if
             the property doesn't exist.
     """
-    result = libovr.ovr_GetFloat(hmd, None if propertyName is None else byref(propertyName), defaultVal)
+    result = libovr.ovr_GetFloat(hmd, None if propertyName is None else propertyName, defaultVal)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1728
 libovr.ovr_SetFloat.restype = Bool
-libovr.ovr_SetFloat.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.c_float]
+libovr.ovr_SetFloat.argtypes = [Hmd, String, ctypes.c_float]
 def setFloat(hmd, propertyName, value):
     """
     Writes or creates a float property.
@@ -1963,13 +2217,13 @@ def setFloat(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetFloat(hmd, None if propertyName is None else byref(propertyName), value)
+    result = libovr.ovr_SetFloat(hmd, None if propertyName is None else propertyName, value)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1739
 libovr.ovr_GetFloatArray.restype = ctypes.c_uint
-libovr.ovr_GetFloatArray.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
+libovr.ovr_GetFloatArray.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
 def getFloatArray(hmd, propertyName, values, valuesCapacity):
     """
     Reads a float array property.
@@ -1980,13 +2234,13 @@ def getFloatArray(hmd, propertyName, values, valuesCapacity):
     \param[in] valuesCapacity Specifies the maximum number of elements to write to the values array.
     \return Returns the number of elements read, or 0 if property doesn't exist or is empty.
     """
-    result = libovr.ovr_GetFloatArray(hmd, None if propertyName is None else byref(propertyName), None if values is None else byref(values), valuesCapacity)
+    result = libovr.ovr_GetFloatArray(hmd, None if propertyName is None else propertyName, None if values is None else byref(values), valuesCapacity)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1749
 libovr.ovr_SetFloatArray.restype = Bool
-libovr.ovr_SetFloatArray.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
+libovr.ovr_SetFloatArray.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
 def setFloatArray(hmd, propertyName, values, valuesSize):
     """
     Writes or creates a float array property.
@@ -1998,13 +2252,13 @@ def setFloatArray(hmd, propertyName, values, valuesSize):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetFloatArray(hmd, None if propertyName is None else byref(propertyName), None if values is None else byref(values), valuesSize)
+    result = libovr.ovr_SetFloatArray(hmd, None if propertyName is None else propertyName, None if values is None else byref(values), valuesSize)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1761
 libovr.ovr_GetString.restype = ctypes.POINTER(ctypes.c_char)
-libovr.ovr_GetString.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
+libovr.ovr_GetString.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_char)]
 def getString(hmd, propertyName, defaultVal):
     """
     Reads a string property.
@@ -2017,13 +2271,13 @@ def getString(hmd, propertyName, defaultVal):
             The return memory is guaranteed to be valid until next call to ovr_GetString or
             until the HMD is destroyed, whichever occurs first.
     """
-    result = libovr.ovr_GetString(hmd, None if propertyName is None else byref(propertyName), None if defaultVal is None else byref(defaultVal))
+    result = libovr.ovr_GetString(hmd, None if propertyName is None else propertyName, None if defaultVal is None else byref(defaultVal))
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1773
 libovr.ovr_SetString.restype = Bool
-libovr.ovr_SetString.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
+libovr.ovr_SetString.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_char)]
 def setString(hmd, propertyName, value):
     """
     Writes or creates a string property.
@@ -2035,7 +2289,7 @@ def setString(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetString(hmd, None if propertyName is None else byref(propertyName), None if value is None else byref(value))
+    result = libovr.ovr_SetString(hmd, None if propertyName is None else propertyName, None if value is None else byref(value))
     return result
 
 
@@ -2114,7 +2368,7 @@ def createSwapTextureSetGL(hmd, format, width, height):
 # Translated from header file OVR_CAPI_GL.h line 73
 libovr.ovr_CreateMirrorTextureGL.restype = Result
 libovr.ovr_CreateMirrorTextureGL.argtypes = [Hmd, GLuint, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.POINTER(Texture))]
-def createMirrorTextureGL(hmd, format, width, height):
+def createMirrorTextureGL(hmd, format_, width, height):
     """
     Creates a Mirror Texture which is auto-refreshed to mirror Rift contents produced by this application.
     
@@ -2140,7 +2394,7 @@ def createMirrorTextureGL(hmd, format, width, height):
     \see ovr_DestroyMirrorTexture
     """
     outMirrorTexture = ctypes.POINTER(Texture)()
-    result = libovr.ovr_CreateMirrorTextureGL(hmd, format, width, height, None if outMirrorTexture is None else byref(outMirrorTexture))
+    result = libovr.ovr_CreateMirrorTextureGL(hmd, format_, width, height, None if outMirrorTexture is None else byref(outMirrorTexture))
     if FAILURE(result):
         raise Exception("Call to function createMirrorTextureGL failed")    
     return outMirrorTexture
@@ -2195,6 +2449,80 @@ def matrix4f_Projection(fov, znear, zfar, projectionModFlags):
     """
     result = libovr.ovrMatrix4f_Projection(fov, znear, zfar, projectionModFlags)
     return result
+
+# apparently not needed, don't know why the SDK doesn't use the DLL projection matrix.
+#     rightHanded    = (projectionModFlags & Projection_RightHanded) > 0
+#     flipZ          = (projectionModFlags & Projection_FarLessThanNear) > 0
+#     farAtInfinity  = (projectionModFlags & Projection_FarClipAtInfinity) > 0
+#     isOpenGL       = (projectionModFlags & Projection_ClipRangeOpenGL) > 0
+# 
+#     if farAtInfinity and not flipZ :
+#         farAtInfinity = False;
+# 
+#     projXScale = 2.0 / ( fov.LeftTan + fov.RightTan )
+#     projXOffset = ( fov.LeftTan - fov.RightTan ) * projXScale * 0.5
+#     projYScale = 2.0 / ( fov.UpTan + fov.DownTan )
+#     projYOffset = ( fov.UpTan - fov.DownTan ) * projYScale * 0.5
+# 
+#     scale = Vector2f(projXScale, projYScale)
+#     offset = Vector2f(projXOffset, projYOffset)
+#     handednessScale = 1.0
+#     if rightHanded:
+#       handednessScale = -1.0
+# 
+#     zscale = 1.0
+#     if flipZ:
+#       zscale = -1.0
+# 
+#     projection = Matrix4f()
+#     # Produces X result, mapping clip edges to [-w,+w]
+#     projection.M[0][0] = scale.x
+#     projection.M[0][1] = 0.0
+#     projection.M[0][2] = handednessScale * offset.x
+#     projection.M[0][3] = 0.0
+# 
+#     # Produces Y result, mapping clip edges to [-w,+w]
+#     # Hey - why is that YOffset negated?
+#     # It's because a projection matrix transforms from world coords with Y=up,
+#     # whereas this is derived from an NDC scaling, which is Y=down.
+#     projection.M[1][0] = 0.0
+#     projection.M[1][1] = scale.y
+#     projection.M[1][2] = handednessScale * -offset.y
+#     projection.M[1][3] = 0.0
+# 
+#     # Produces Z-buffer result - app needs to fill this in with whatever Z range it wants.
+#     # We'll just use some defaults for now.
+#     projection.M[2][0] = 0.0
+#     projection.M[2][1] = 0.0
+# 
+#     if farAtInfinity:
+#       if isOpenGL:
+#         # It's not clear this makes sense for OpenGL - you don't get the same precision benefits you do in D3D.
+#         projection.M[2][2] = -handednessScale
+#         projection.M[2][3] = 2.0 * znear
+#       else:
+#         projection.M[2][2] = 0.0;
+#         projection.M[2][3] = znear;
+#     else:
+#       if isOpenGL:
+#         # Clip range is [-w,+w], so 0 is at the middle of the range.
+#         projection.M[2][2] = -handednessScale * zscale * (znear + zfar) / (znear - zfar);
+#         projection.M[2][3] = 2.0 * zscale * zfar * znear / (znear - zfar);
+#       else:
+#         # Clip range is [0,+w], so 0 is at the start of the range.
+#         near = -znear;
+#         if flipZ:
+#           near = zfar;
+#         projection.M[2][2] = -handednessScale * near / (znear - zfar);
+#         projection.M[2][3] = zscale * zfar * znear / (znear - zfar);
+# 
+#     # Produces W result (= Z in)
+#     projection.M[3][0] = 0.0;
+#     projection.M[3][1] = 0.0;
+#     projection.M[3][2] = handednessScale;
+#     projection.M[3][3] = 0.0;
+# 
+#     return projection;
 
 
 # Translated from header file OVR_CAPI_Util.h line 61
@@ -2304,3 +2632,4 @@ if __name__ == "__main__":
 
     destroy(hmd)
     shutdown()
+
