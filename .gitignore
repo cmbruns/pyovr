@@ -5,3 +5,4 @@
 /ovr/init.py.save
 /examples/glut/*.pyc
 /dist
+*.pyc

@@ -24,6 +24,35 @@ my $type_rx = '[^;\n(),\s/][^;\n(),/]*[^;\n(),\s/]'; # can have spaces, e.g. "co
 my $ident_rx = '[a-zA-Z0-9_]+'; # yes, initial underscores should be parsed too...
 my $comment_line_rx = '(?<=\n)[\ ]*(?://|/\*)[^\n]*\n';
 
+# Some types should act like python sequences
+
+my @sequence_types = ["Vector2i", "Sizei", "Vector2f", 
+        "Quatf", "Vector2f", "Vector3f"];
+
+my @sequence_methods = [
+<<"END_LEN"
+    def __len__(self):
+        return len(self._fields_)
+END_LEN
+,
+<<"END_GETITEM"
+    def __getitem__(self, key):
+        # TODO: Key could be integer or slice
+        field = self_fields_[key]
+        item = getattr(self, field[0])
+        return item
+END_GETITEM
+,
+<<"END_SETITEM"
+    def __setitem__(self, key, value):
+        # TODO: Key could be integer or slice
+        field = self_fields_[key]
+        item = getattr(self, field[0])
+        item = value
+END_SETITEM
+,
+];
+
 my %custom_methods = ();
 $custom_methods{"Quatf"} = [<<"END_EULER"
 
@@ -82,34 +111,34 @@ Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
 
 import ctypes
-from ctypes import byref
+from ctypes import *
 import sys
 import textwrap
 import math
 import platform
 
 
-OVR_PTR_SIZE = ctypes.sizeof(ctypes.c_voidp) # distinguish 32 vs 64 bit python
+OVR_PTR_SIZE = sizeof(c_voidp) # distinguish 32 vs 64 bit python
 
 # Load Oculus runtime library (only tested on Windows)
 # 1) Figure out name of library to load
 _libname = "OVRRT32_0_7" # 32-bit python
 if OVR_PTR_SIZE == 8:
-    _libname = OVRRT64_0_7 # 64-bit python
+    _libname = "OVRRT64_0_7" # 64-bit python
 if platform.system().startswith("Win"):
     _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_7"
 # Load library
 try:
-    libovr = ctypes.CDLL(_libname)
+    libovr = CDLL(_libname)
 except:
     print "Is Oculus Runtime 0.7 installed on this machine?"
     raise
 
 
-ENUM_TYPE = ctypes.c_int32 # Hopefully a close enough guess...
+ENUM_TYPE = c_int32 # Hopefully a close enough guess...
 
 
-class HmdStruct(ctypes.Structure):
+class HmdStruct(Structure):
     "Used as an opaque pointer to an OVR session."
     pass
 
@@ -121,9 +150,252 @@ class HmdStruct(ctypes.Structure):
 # \param[in] message is a UTF8-encoded null-terminated string.
 # \see ovrInitParams ovrLogLevel, ovr_Initialize
 #
-# typedef void (OVR_CDECL* ovrLogCallback)(ctypes.POINTER(ctypes.c_uint) userData, int level, const char* message);
-LogCallback = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_uint), ctypes.c_int, ctypes.c_char_p)
+# typedef void (OVR_CDECL* ovrLogCallback)(POINTER(c_uint) userData, int level, const char* message);
+LogCallback = CFUNCTYPE(None, POINTER(c_uint), c_int, c_char_p)
 
+
+# String methods contributed by jherico
+
+class UserString:
+    def __init__(self, seq):
+        if isinstance(seq, basestring):
+            self.data = seq
+        elif isinstance(seq, UserString):
+            self.data = seq.data[:]
+        else:
+            self.data = str(seq)
+    def __str__(self): return str(self.data)
+    def __repr__(self): return repr(self.data)
+    def __int__(self): return int(self.data)
+    def __long__(self): return long(self.data)
+    def __float__(self): return float(self.data)
+    def __complex__(self): return complex(self.data)
+    def __hash__(self): return hash(self.data)
+
+    def __cmp__(self, string):
+        if isinstance(string, UserString):
+            return cmp(self.data, string.data)
+        else:
+            return cmp(self.data, string)
+    def __contains__(self, char):
+        return char in self.data
+
+    def __len__(self): return len(self.data)
+    def __getitem__(self, index): return self.__class__(self.data[index])
+    def __getslice__(self, start, end):
+        start = max(start, 0); end = max(end, 0)
+        return self.__class__(self.data[start:end])
+
+    def __add__(self, other):
+        if isinstance(other, UserString):
+            return self.__class__(self.data + other.data)
+        elif isinstance(other, basestring):
+            return self.__class__(self.data + other)
+        else:
+            return self.__class__(self.data + str(other))
+    def __radd__(self, other):
+        if isinstance(other, basestring):
+            return self.__class__(other + self.data)
+        else:
+            return self.__class__(str(other) + self.data)
+    def __mul__(self, n):
+        return self.__class__(self.data*n)
+    __rmul__ = __mul__
+    def __mod__(self, args):
+        return self.__class__(self.data % args)
+
+    # the following methods are defined in alphabetical order:
+    def capitalize(self): return self.__class__(self.data.capitalize())
+    def center(self, width, *args):
+        return self.__class__(self.data.center(width, *args))
+    def count(self, sub, start=0, end=sys.maxint):
+        return self.data.count(sub, start, end)
+    def decode(self, encoding=None, errors=None): # XXX improve this?
+        if encoding:
+            if errors:
+                return self.__class__(self.data.decode(encoding, errors))
+            else:
+                return self.__class__(self.data.decode(encoding))
+        else:
+            return self.__class__(self.data.decode())
+    def encode(self, encoding=None, errors=None): # XXX improve this?
+        if encoding:
+            if errors:
+                return self.__class__(self.data.encode(encoding, errors))
+            else:
+                return self.__class__(self.data.encode(encoding))
+        else:
+            return self.__class__(self.data.encode())
+    def endswith(self, suffix, start=0, end=sys.maxint):
+        return self.data.endswith(suffix, start, end)
+    def expandtabs(self, tabsize=8):
+        return self.__class__(self.data.expandtabs(tabsize))
+    def find(self, sub, start=0, end=sys.maxint):
+        return self.data.find(sub, start, end)
+    def index(self, sub, start=0, end=sys.maxint):
+        return self.data.index(sub, start, end)
+    def isalpha(self): return self.data.isalpha()
+    def isalnum(self): return self.data.isalnum()
+    def isdecimal(self): return self.data.isdecimal()
+    def isdigit(self): return self.data.isdigit()
+    def islower(self): return self.data.islower()
+    def isnumeric(self): return self.data.isnumeric()
+    def isspace(self): return self.data.isspace()
+    def istitle(self): return self.data.istitle()
+    def isupper(self): return self.data.isupper()
+    def join(self, seq): return self.data.join(seq)
+    def ljust(self, width, *args):
+        return self.__class__(self.data.ljust(width, *args))
+    def lower(self): return self.__class__(self.data.lower())
+    def lstrip(self, chars=None): return self.__class__(self.data.lstrip(chars))
+    def partition(self, sep):
+        return self.data.partition(sep)
+    def replace(self, old, new, maxsplit=-1):
+        return self.__class__(self.data.replace(old, new, maxsplit))
+    def rfind(self, sub, start=0, end=sys.maxint):
+        return self.data.rfind(sub, start, end)
+    def rindex(self, sub, start=0, end=sys.maxint):
+        return self.data.rindex(sub, start, end)
+    def rjust(self, width, *args):
+        return self.__class__(self.data.rjust(width, *args))
+    def rpartition(self, sep):
+        return self.data.rpartition(sep)
+    def rstrip(self, chars=None): return self.__class__(self.data.rstrip(chars))
+    def split(self, sep=None, maxsplit=-1):
+        return self.data.split(sep, maxsplit)
+    def rsplit(self, sep=None, maxsplit=-1):
+        return self.data.rsplit(sep, maxsplit)
+    def splitlines(self, keepends=0): return self.data.splitlines(keepends)
+    def startswith(self, prefix, start=0, end=sys.maxint):
+        return self.data.startswith(prefix, start, end)
+    def strip(self, chars=None): return self.__class__(self.data.strip(chars))
+    def swapcase(self): return self.__class__(self.data.swapcase())
+    def title(self): return self.__class__(self.data.title())
+    def translate(self, *args):
+        return self.__class__(self.data.translate(*args))
+    def upper(self): return self.__class__(self.data.upper())
+    def zfill(self, width): return self.__class__(self.data.zfill(width))
+
+class MutableString(UserString):
+    """mutable string objects
+
+    Python strings are immutable objects.  This has the advantage, that
+    strings may be used as dictionary keys.  If this property isn't needed
+    and you insist on changing string values in place instead, you may cheat
+    and use MutableString.
+
+    But the purpose of this class is an educational one: to prevent
+    people from inventing their own mutable string class derived
+    from UserString and than forget thereby to remove (override) the
+    __hash__ method inherited from UserString.  This would lead to
+    errors that would be very hard to track down.
+
+    A faster and better solution is to rewrite your program using lists."""
+    def __init__(self, string=""):
+        self.data = string
+    def __hash__(self):
+        raise TypeError("unhashable type (it is mutable)")
+    def __setitem__(self, index, sub):
+        if index < 0:
+            index += len(self.data)
+        if index < 0 or index >= len(self.data): raise IndexError
+        self.data = self.data[:index] + sub + self.data[index+1:]
+    def __delitem__(self, index):
+        if index < 0:
+            index += len(self.data)
+        if index < 0 or index >= len(self.data): raise IndexError
+        self.data = self.data[:index] + self.data[index+1:]
+    def __setslice__(self, start, end, sub):
+        start = max(start, 0); end = max(end, 0)
+        if isinstance(sub, UserString):
+            self.data = self.data[:start]+sub.data+self.data[end:]
+        elif isinstance(sub, basestring):
+            self.data = self.data[:start]+sub+self.data[end:]
+        else:
+            self.data =  self.data[:start]+str(sub)+self.data[end:]
+    def __delslice__(self, start, end):
+        start = max(start, 0); end = max(end, 0)
+        self.data = self.data[:start] + self.data[end:]
+    def immutable(self):
+        return UserString(self.data)
+    def __iadd__(self, other):
+        if isinstance(other, UserString):
+            self.data += other.data
+        elif isinstance(other, basestring):
+            self.data += other
+        else:
+            self.data += str(other)
+        return self
+    def __imul__(self, n):
+        self.data *= n
+        return self
+
+
+def POINTER(obj):
+    p = ctypes.POINTER(obj)
+
+    # Convert None to a real NULL pointer to work around bugs
+    # in how ctypes handles None on 64-bit platforms
+    if not isinstance(p.from_param, classmethod):
+        def from_param(cls, x):
+            if x is None:
+                return cls()
+            else:
+                return x
+        p.from_param = classmethod(from_param)
+
+    return p
+
+
+def byref(obj):
+    "Referencing None should result in None, at least for initialize method"
+    b = None if obj is None else ctypes.byref(obj)
+    return b
+
+      
+class String(MutableString, Union):
+
+    _fields_ = [('raw', POINTER(c_char)),
+                ('data', c_char_p)]
+
+    def __init__(self, obj=""):
+        if isinstance(obj, (str, unicode, UserString)):
+            self.data = str(obj)
+        else:
+            self.raw = obj
+
+    def __len__(self):
+        return self.data and len(self.data) or 0
+
+    def from_param(cls, obj):
+        # Convert None or 0
+        if obj is None or obj == 0:
+            return cls(POINTER(c_char)())
+
+        # Convert from String
+        elif isinstance(obj, String):
+            return obj
+
+        # Convert from str
+        elif isinstance(obj, str):
+            return cls(obj)
+
+        # Convert from c_char_p
+        elif isinstance(obj, c_char_p):
+            return obj
+
+        # Convert from POINTER(c_char)
+        elif isinstance(obj, POINTER(c_char)):
+            return obj
+
+        # Convert from raw pointer
+        elif isinstance(obj, int):
+            return cls(cast(obj, POINTER(c_char)))
+
+        # Convert from object
+        else:
+            return String.from_param(obj._as_parameter_)
+    from_param = classmethod(from_param)
 
 END_PREAMBLE
 
@@ -322,12 +594,15 @@ sub process_functions {
                 }
                 # Unspecified array type return value
                 elsif ($decoration =~ m/^\[\]$/) {
-                    $type = "ctypes.POINTER($type)";
+                    $type = "POINTER($type)";
                 }
 
-                if ($type =~ /^ctypes.POINTER\(/) {
+                if ($type =~ /^POINTER\(/) {
                     $byref_args{$ident} = 1;
                 }
+
+                # Avoid warning for use of "format" as an identifier per jherico
+                $ident =~ s/^format$/format_/;
 
                 push @arg_names, $ident;
                 push @arg_types, $type;
@@ -377,7 +652,7 @@ sub process_functions {
             # i.e. Only submitFrame(layerPtrList) argument.
             next unless exists $byref_args{$arg};
             next if exists $out_args_set{$arg};
-            next unless $types_by_arg{$arg} =~ m/^ctypes\.POINTER\((ctypes\.POINTER\(\S*\s*\))\s*\)/;
+            next unless $types_by_arg{$arg} =~ m/^POINTER\((POINTER\(\S*\s*\))\s*\)/;
             # print $types_by_arg{$arg}, "\n";
             # print $arg, "\n";
             my $pointee_type = $1;
@@ -388,7 +663,7 @@ sub process_functions {
         # Declare local variables for output arguments
         foreach my $arg (@out_args) {
             my $type = $types_by_arg{$arg};
-            $type =~ s/^ctypes.POINTER\((.*)\)$/$1/;
+            $type =~ s/^POINTER\((.*)\)$/$1/;
             $trans .= "    $arg = $type()\n";
         }
 
@@ -396,7 +671,7 @@ sub process_functions {
         my @call_args = ();
         foreach my $arg (@arg_names) {
             if (exists $byref_args{$arg}) {
-                $arg = "None if $arg is None else byref($arg)";
+                $arg = "byref($arg)";
             }
             push @call_args, $arg;
         }
@@ -486,7 +761,7 @@ sub process_structs {
         $class_name = translate_type($class_name);
 
         my $trans = "";
-        $trans .= "class $class_name(ctypes.";
+        $trans .= "class $class_name(";
         if ($struct_or_union =~ m/^struct$/) {
             $trans .= "Structure";
         }
@@ -577,7 +852,7 @@ sub process_structs {
 
                 $rest = translate_comment($rest);
 
-                $trans .= "        (\"$id\", ctypes.c_char * $pad), $rest\n";
+                $trans .= "        (\"$id\", c_char * $pad), $rest\n";
             }
             elsif ($line =~ m/^
                 \s*
@@ -596,7 +871,7 @@ sub process_structs {
 
                 $rest = translate_comment($rest);
                 # TODO: eventually handle 64-bit padding correctly
-                $trans .= "        # skipping 64-bit only padding... # (\"$id\", ctypes.c_char * $pad), $rest\n";
+                $trans .= "        # skipping 64-bit only padding... # (\"$id\", c_char * $pad), $rest\n";
             }
             else {
                 $line = translate_comment($line);
@@ -847,19 +1122,23 @@ sub translate_type {
     $type =~ s/\bunsigned\s+/u/g; # unsigned int => uint
     # translate to ctypes type name
     if ($type =~ m/^(float|u?int|double|u?char|u?short|u?long)/) {
-        $type = "ctypes.c_$type";
+        $type = "c_$type";
     }
     # remove leading "ovr" or "ovr_"
     if ($type =~ m/^ovr_?(.*)$/) {
         $type = ucfirst($1); # capitalize first letter of types
     }
+    # C strings
+    if ($type =~ m/^\s*(?:const\s+)?char\s*\*\s*$/) {
+        $type = "c_char_p"; # strings
+    }
     # translate pointer type "*"
-    while ($type =~ m/^([^\*]+\S)\s*\*(.*)$/) { # HmdStruct* -> ctypes.POINTER(HmdStruct)
-       $type = "ctypes.POINTER($1)$2";
+    while ($type =~ m/^([^\*]+\S)\s*\*(.*)$/) { # HmdStruct* -> POINTER(HmdStruct)
+       $type = "POINTER($1)$2";
     }
     # translate pointer type "ptr"
-    while ($type =~ m/^([^\*]+)ptr(.*)$/) { # uintptr_t -> ctypes.POINTER(ctypes.c_uint)
-       $type = "ctypes.POINTER($1)$2";
+    while ($type =~ m/^([^\*]+)ptr(.*)$/) { # uintptr_t -> POINTER(c_uint)
+       $type = "POINTER($1)$2";
     }
 
     if ($type =~ /^void$/) {
