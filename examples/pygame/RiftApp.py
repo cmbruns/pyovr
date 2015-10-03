@@ -128,6 +128,10 @@ class RiftApp():
     pygame.display.set_mode(size, flags)
 
   def init_gl(self):
+    print("GL Version: " + glGetString(GL_VERSION));
+    print("GL Shader Language Version: " + glGetString(GL_SHADING_LANGUAGE_VERSION));
+    print("GL Vendor: " + glGetString(GL_VENDOR));
+    print("GL Renderer: " + glGetString(GL_RENDERER));
     self.framebuffer = RiftSwapFramebuffer(self.rift, self.bufferSize)
     self.layer.ColorTexture[0]  = self.framebuffer.pTextureSet # single texture for both eyes
     self.layer.ColorTexture[1]  = self.framebuffer.pTextureSet # single texture for both eyes
