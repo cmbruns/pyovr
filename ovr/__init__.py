@@ -1635,7 +1635,7 @@ def destroySwapTextureSet(hmd, textureSet):
     
     \see ovr_CreateSwapTextureSetD3D11, ovr_CreateSwapTextureSetGL
     """
-    result = libovr.ovr_DestroySwapTextureSet(hmd, None if textureSet is None else byref(textureSet))
+    result = libovr.ovr_DestroySwapTextureSet(hmd, textureSet)
     return result
 
 

@@ -30,13 +30,15 @@ class RiftApp():
     )
 
   def close(self):
-    glDeleteFramebuffers(1, self.fbo)
-    glDeleteTextures(self.color)
-    glDeleteRenderbuffers(1, self.depth)
+    glDeleteFramebuffers(1, [self.fbo])
+    # glDeleteTextures(self.color)
+    glDeleteRenderbuffers(1, [self.depth])
+    if self.pTextureSet is not None:
+        ovr.destroySwapTextureSet(self.hmd, self.pTextureSet)
 
-    self.hmd.destroy()
+    ovr.destroy(self.hmd)
     self.hmd = None
-    ovr.Hmd.shutdown()
+    ovr.shutdown()
 
   def create_window(self):
     import os
