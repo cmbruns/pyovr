@@ -10,6 +10,8 @@ my $include_folder = "C:/Program Files/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Incl
 
 # 2) Edit this list to change the set of header files to translate
 my @header_files = (
+    "OVR_Version.h",
+    "OVR_CAPI_Keys.h",
     "OVR_ErrorCode.h",
     "OVR_CAPI_0_7_0.h",
     "OVR_CAPI_GL.h",
@@ -211,6 +213,7 @@ sub process_code_block {
     process_macros($code, \%translated_by_pos);
     process_structs($code, \%translated_by_pos);
     process_functions($code, \%translated_by_pos);
+    process_constants($code, \%translated_by_pos);
 
     my $line_number = 0;
     foreach my $pos (sort {$a <=> $b} keys %translated_by_pos) {
@@ -220,6 +223,38 @@ sub process_code_block {
         print $out "# Translated from header file $fname line $line_number\n";
         print $out $translated_by_pos{$pos}, "\n\n";
     }
+}
+
+sub process_constants {
+    my $code = shift;
+    my $by_pos = shift;
+
+    # First use a simple regex, to be sure of counting all examples
+    my $count1 = 0;
+    # "OVR_PUBLIC_FUNCTION(ovrResult) ovr_Initialize(const ovrInitParams* params);"
+    while ($code =~ m!(?<=\n)\#define\s+OVR_(\S+)\s+(\S+)\s*(//.*)?!g) {
+        my $key = $1;
+        my $value = $2;
+        my $comment = $3;
+        my $p = pos($code) - length($&);
+
+        next if $key =~ m/_h$/; # OVR_CAPI_0_7_0_h
+        next if $key =~ m/_DEFINED$/; # OVR_SUCCESS_DEFINED
+
+        $value =~ s/f$//; # Remove float tag from literals
+        $value =~ s/\{/\[/g;
+        $value =~ s/\}/\]/g;
+        $value =~ s/OVR_//; # equal to other key...
+
+        $comment = translate_comment($comment);
+        my $trans = "$key = $value $comment\n";
+
+        $by_pos->{$p} = $trans;
+
+        $count1 += 1;
+    }
+
+    print "$count1 constants found\n";
 }
 
 sub process_functions {
@@ -343,10 +378,10 @@ sub process_functions {
             next unless exists $byref_args{$arg};
             next if exists $out_args_set{$arg};
             next unless $types_by_arg{$arg} =~ m/^ctypes\.POINTER\((ctypes\.POINTER\(\S*\s*\))\s*\)/;
-            print $types_by_arg{$arg}, "\n";
-            print $arg, "\n";
+            # print $types_by_arg{$arg}, "\n";
+            # print $arg, "\n";
             my $pointee_type = $1;
-            print $pointee_type, "\n";
+            # print $pointee_type, "\n";
             $trans .= "    $arg = $pointee_type($arg)\n";
         }        
 
@@ -404,7 +439,7 @@ EOF
         $count2 += 1;
     }
 
-    print "$count1 ($count2) functions found\n";
+    # print "$count1 ($count2) functions found\n";
     die unless $count1 == $count2;
 };
 

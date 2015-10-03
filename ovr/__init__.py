@@ -49,6 +49,162 @@ class HmdStruct(ctypes.Structure):
 LogCallback = ctypes.CFUNCTYPE(None, ctypes.POINTER(ctypes.c_uint), ctypes.c_int, ctypes.c_char_p)
 
 
+### BEGIN Declarations from C header file OVR_Version.h ###
+
+
+# Translated from header file OVR_Version.h line 21
+PRODUCT_VERSION = 0 
+
+
+# Translated from header file OVR_Version.h line 22
+MAJOR_VERSION = 7 
+
+
+# Translated from header file OVR_Version.h line 23
+MINOR_VERSION = 0 
+
+
+# Translated from header file OVR_Version.h line 24
+PATCH_VERSION = 0 
+
+
+# Translated from header file OVR_Version.h line 25
+BUILD_NUMBER = 0 # "Product.Major.Minor.Patch"
+
+
+# Translated from header file OVR_Version.h line 48
+DISPLAY_DRIVER_PRODUCT_VERSION = "1.2.7.0" # This is the product version for the Oculus Position Tracker Driver. A
+
+
+# Translated from header file OVR_Version.h line 52
+POSITIONAL_TRACKER_DRIVER_PRODUCT_VERSION = "1.0.11.0" # \brief file description for version info
+
+
+### END Declarations from C header file OVR_Version.h ###
+
+
+### BEGIN Declarations from C header file OVR_CAPI_Keys.h ###
+
+
+# Translated from header file OVR_CAPI_Keys.h line 11
+KEY_USER = "User" # string
+
+
+# Translated from header file OVR_CAPI_Keys.h line 13
+KEY_NAME = "Name" # string
+
+
+# Translated from header file OVR_CAPI_Keys.h line 14
+KEY_GENDER = "Gender" # string "Male", "Female", or "Unknown"
+
+
+# Translated from header file OVR_CAPI_Keys.h line 15
+KEY_PLAYER_HEIGHT = "PlayerHeight" # float meters
+
+
+# Translated from header file OVR_CAPI_Keys.h line 16
+KEY_EYE_HEIGHT = "EyeHeight" # float meters
+
+
+# Translated from header file OVR_CAPI_Keys.h line 17
+KEY_IPD = "IPD" # float meters
+
+
+# Translated from header file OVR_CAPI_Keys.h line 18
+KEY_NECK_TO_EYE_DISTANCE = "NeckEyeDistance" # float[2] meters
+
+
+# Translated from header file OVR_CAPI_Keys.h line 19
+KEY_EYE_RELIEF_DIAL = "EyeReliefDial" # int in range of 0-10
+
+
+# Translated from header file OVR_CAPI_Keys.h line 20
+KEY_EYE_TO_NOSE_DISTANCE = "EyeToNoseDist" # float[2] meters
+
+
+# Translated from header file OVR_CAPI_Keys.h line 21
+KEY_MAX_EYE_TO_PLATE_DISTANCE = "MaxEyeToPlateDist" # float[2] meters
+
+
+# Translated from header file OVR_CAPI_Keys.h line 22
+KEY_EYE_CUP = "EyeCup" # char[16] "A", "B", or "C"
+
+
+# Translated from header file OVR_CAPI_Keys.h line 23
+KEY_CUSTOM_EYE_RENDER = "CustomEyeRender" # bool
+
+
+# Translated from header file OVR_CAPI_Keys.h line 25
+KEY_CAMERA_POSITION_1 = "CenteredFromWorld" # double[7] ovrPosef quat rotation x, y, z, w, translation x, y, z
+
+
+# Translated from header file OVR_CAPI_Keys.h line 27
+KEY_CAMERA_POSITION_2 = "CenteredFromWorld2" # double[7] ovrPosef quat rotation x, y, z, w, translation x, y, z
+
+
+# Translated from header file OVR_CAPI_Keys.h line 28
+KEY_CAMERA_POSITION = KEY_CAMERA_POSITION_2 # Default measurements empirically determined at Oculus to make us happy
+
+
+# Translated from header file OVR_CAPI_Keys.h line 36
+DEFAULT_GENDER = "Unknown" 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 37
+DEFAULT_PLAYER_HEIGHT = 1.778 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 38
+DEFAULT_EYE_HEIGHT = 1.675 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 39
+DEFAULT_IPD = 0.064 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 40
+DEFAULT_NECK_TO_EYE_HORIZONTAL = 0.0805 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 41
+DEFAULT_NECK_TO_EYE_VERTICAL = 0.075 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 42
+DEFAULT_EYE_RELIEF_DIAL = 3 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 43
+DEFAULT_CAMERA_POSITION = [0,0,0,1,0,0,0] 
+
+
+# Translated from header file OVR_CAPI_Keys.h line 44
+PERF_HUD_MODE = "PerfHudMode" # allowed values are defined in enum ovrPerfHudMode
+
+
+# Translated from header file OVR_CAPI_Keys.h line 46
+DEBUG_HUD_STEREO_MODE = "DebugHudStereoMode" # allowed values are defined in enum ovrDebugHudStereoMode
+
+
+# Translated from header file OVR_CAPI_Keys.h line 48
+DEBUG_HUD_STEREO_GUIDE_SIZE = "DebugHudStereoGuideSize2f" # float[2]
+
+
+# Translated from header file OVR_CAPI_Keys.h line 49
+DEBUG_HUD_STEREO_GUIDE_POSITION = "DebugHudStereoGuidePosition3f" # float[3]
+
+
+# Translated from header file OVR_CAPI_Keys.h line 50
+DEBUG_HUD_STEREO_GUIDE_YAWPITCHROLL = "DebugHudStereoGuideYawPitchRoll3f" # float[3]
+
+
+# Translated from header file OVR_CAPI_Keys.h line 51
+DEBUG_HUD_STEREO_GUIDE_COLOR = "DebugHudStereoGuideColor4f" # float[4]
+
+
+### END Declarations from C header file OVR_CAPI_Keys.h ###
+
+
 ### BEGIN Declarations from C header file OVR_ErrorCode.h ###
 
 
