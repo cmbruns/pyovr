@@ -6,7 +6,88 @@ import ovr
 from RiftApp import RiftApp
 from cgkit.cgtypes import mat4, vec3, quat
 from OpenGL.GL import *   #@UnusedWildImport
+from OpenGL.GL import shaders
 
+
+VERTEX_SOURCE = """#version 450 core
+#line 14
+layout(location = 0) uniform mat4 Projection = mat4(1);
+layout(location = 4) uniform mat4 ModelView = mat4(1);
+layout(location = 8) uniform float Size = 1.0;
+
+const vec3 UNIT_CUBE[8] = vec3[8](
+  vec3(-1.0, -1.0, -1.0),
+  vec3(1.0, -1.0, -1.0),
+  vec3(-1.0, 1.0, -1.0),
+  vec3(1.0, 1.0, -1.0),
+  vec3(-1.0, -1.0, 1.0),
+  vec3(1.0, -1.0, 1.0),
+  vec3(-1.0, 1.0, 1.0),
+  vec3(1.0, 1.0, 1.0)
+);
+
+const vec3 UNIT_CUBE_NORMALS[6] = vec3[6](
+  vec3(0.0, 0.0, -1.0),
+  vec3(0.0, 0.0, 1.0),
+  vec3(1.0, 0.0, 0.0),
+  vec3(-1.0, 0.0, 0.0),
+  vec3(0.0, 1.0, 0.0),
+  vec3(0.0, -1.0, 0.0)
+);
+
+const int CUBE_INDICES[36] = int[36](
+  0, 1, 2, 2, 1, 3, // front
+  4, 6, 5, 6, 5, 7, // back
+  0, 2, 4, 4, 2, 6, // left
+  1, 3, 5, 5, 3, 7, // right
+  2, 6, 3, 6, 3, 7, // top
+  0, 1, 4, 4, 1, 5  // bottom
+);
+
+out vec3 _color;
+
+void main() {
+  _color = vec3(1.0, 0.0, 0.0);
+  int vertexIndex = CUBE_INDICES[gl_VertexID];
+  int normalIndex = gl_VertexID / 6;
+  
+  _color = UNIT_CUBE_NORMALS[normalIndex];
+  if (any(lessThan(_color, vec3(0.0)))) {
+      _color = vec3(1.0) + _color;
+  }
+
+  gl_Position = Projection * ModelView * vec4(UNIT_CUBE[vertexIndex] * Size, 1.0);
+}
+"""
+
+FRAGMENT_SOURCE = """#version 450 core
+#line 65
+in vec3 _color;
+out vec4 FragColor;
+
+void main() {
+  FragColor = vec4(_color, 1.0);
+}
+"""
+
+
+class ColorCube():
+  def __init__(self, size = ovr.DEFAULT_IPD):
+    self.size = size
+    self.vertexShader = shaders.compileShader(VERTEX_SOURCE, GL_VERTEX_SHADER)
+    self.fragmentShader = shaders.compileShader(FRAGMENT_SOURCE, GL_FRAGMENT_SHADER)
+    self.shader = shaders.compileProgram(self.vertexShader,self.fragmentShader)
+    self.vao = glGenVertexArrays(1)
+    glBindVertexArray(self.vao)
+    
+  def draw(self, projection, modelview):
+    shaders.glUseProgram(self.shader)
+    glUniformMatrix4fv(0, 1, GL_FALSE, projection)
+    glUniformMatrix4fv(4, 1, GL_FALSE, modelview)
+    glUniform1f(8, self.size / 2.0)
+    glDrawArrays(GL_TRIANGLES, 0, 36)
+
+  
 def ovrPoseToMat4(pose):
   # Apply the head orientation
   rot = pose.Orientation
@@ -24,51 +105,6 @@ def ovrPoseToMat4(pose):
   
   pose = pos * rot
   return pose
-
-# FIXME shitty non-Core profile rendering code
-def draw_color_cube(size=1.0):
-  p = size / 2.0
-  n = -p
-  glBegin(GL_QUADS)
-
-  # front
-  glColor3f(1, 1, 0)
-  glVertex3f(n, n, n)
-  glVertex3f(p, n, n)
-  glVertex3f(p, p, n)
-  glVertex3f(n, p, n)
-  # back
-  glColor3f(0.2, 0.2, 1)
-  glVertex3f(n, n, p)
-  glVertex3f(p, n, p)
-  glVertex3f(p, p, p)
-  glVertex3f(n, p, p)
-  # right
-  glColor3f(1, 0, 0)
-  glVertex3f(p, n, n)
-  glVertex3f(p, n, p)
-  glVertex3f(p, p, p)
-  glVertex3f(p, p, n)
-  # left
-  glColor3f(0, 1, 1)
-  glVertex3f(n, n, n)
-  glVertex3f(n, n, p)
-  glVertex3f(n, p, p)
-  glVertex3f(n, p, n)
-  # top
-  glColor3f(0, 1, 0)
-  glVertex3f(n, p, n)
-  glVertex3f(p, p, n)
-  glVertex3f(p, p, p)
-  glVertex3f(n, p, p)
-  # bottom
-  glColor3f(1, 0, 1)
-  glVertex3f(n, n, n)
-  glVertex3f(p, n, n)
-  glVertex3f(p, n, p)
-  glVertex3f(n, n, p)
-  glEnd()
-
 
 class RiftDemo(RiftApp):
   def __init__(self):
@@ -89,7 +125,9 @@ class RiftDemo(RiftApp):
   def init_gl(self):
     RiftApp.init_gl(self)
     glEnable(GL_DEPTH_TEST)
+    glDisable(GL_CULL_FACE)
     glClearColor(0.1, 0.1, 0.1, 1)
+    self.cube = ColorCube()
 
   def update(self):
     RiftApp.update(self)
@@ -130,22 +168,16 @@ class RiftDemo(RiftApp):
 
   def render_scene(self):
     eye = self.currentEye;
-
+     
+    projection = list(self.projections[eye])
     eyeview = ovrPoseToMat4(self.poses[eye])
-  
     # apply the camera position
     cameraview = self.camera * eyeview  
-
-    # FIXME deprecated GL functions must die
-    glMatrixMode(GL_PROJECTION)
-    glLoadMatrixf(list(self.projections[eye]))
-
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity();
-    glLoadMatrixf(cameraview.inverse().toList())
+    modelview = cameraview.inverse().toList()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    draw_color_cube(self.cube_size)
+  
+    self.cube.draw(projection, modelview);
 
 
 RiftDemo().run();
