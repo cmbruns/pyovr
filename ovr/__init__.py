@@ -1961,7 +1961,7 @@ class String(MutableString, Union):
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1678
 libovr.ovr_GetBool.restype = Bool
-libovr.ovr_GetBool.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), Bool]
+libovr.ovr_GetBool.argtypes = [Hmd, String, Bool]
 def getBool(hmd, propertyName, defaultVal):
     """
     Reads a boolean property.
@@ -1972,13 +1972,13 @@ def getBool(hmd, propertyName, defaultVal):
     \return Returns the property interpreted as a boolean value. Returns defaultVal if
             the property doesn't exist.
     """
-    result = libovr.ovr_GetBool(hmd, None if propertyName is None else byref(propertyName), defaultVal)
+    result = libovr.ovr_GetBool(hmd, None if propertyName is None else propertyName, defaultVal)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1687
 libovr.ovr_SetBool.restype = Bool
-libovr.ovr_SetBool.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), Bool]
+libovr.ovr_SetBool.argtypes = [Hmd, String, Bool]
 def setBool(hmd, propertyName, value):
     """
     Writes or creates a boolean property.
@@ -1990,13 +1990,13 @@ def setBool(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetBool(hmd, None if propertyName is None else byref(propertyName), value)
+    result = libovr.ovr_SetBool(hmd, None if propertyName is None else propertyName, value)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1698
 libovr.ovr_GetInt.restype = ctypes.c_int
-libovr.ovr_GetInt.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.c_int]
+libovr.ovr_GetInt.argtypes = [Hmd, String, ctypes.c_int]
 def getInt(hmd, propertyName, defaultVal):
     """
     Reads an integer property.
@@ -2007,13 +2007,13 @@ def getInt(hmd, propertyName, defaultVal):
     \return Returns the property interpreted as an integer value. Returns defaultVal if
             the property doesn't exist.
     """
-    result = libovr.ovr_GetInt(hmd, None if propertyName is None else byref(propertyName), defaultVal)
+    result = libovr.ovr_GetInt(hmd, None if propertyName is None else propertyName, defaultVal)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1707
 libovr.ovr_SetInt.restype = Bool
-libovr.ovr_SetInt.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.c_int]
+libovr.ovr_SetInt.argtypes = [Hmd, String, ctypes.c_int]
 def setInt(hmd, propertyName, value):
     """
     Writes or creates an integer property.
@@ -2026,14 +2026,13 @@ def setInt(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetInt(hmd, None if propertyName is None else byref(propertyName), value)
+    result = libovr.ovr_SetInt(hmd, None if propertyName is None else propertyName, value)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1719
-libovr.ovr_GetFloat.restype = c_float
-libovr.ovr_GetFloat.argtypes = [Hmd, String, c_float]
-
+libovr.ovr_GetFloat.restype = ctypes.c_float
+libovr.ovr_GetFloat.argtypes = [Hmd, String, ctypes.c_float]
 def getFloat(hmd, propertyName, defaultVal):
     """
     Reads a float property.
@@ -2050,7 +2049,7 @@ def getFloat(hmd, propertyName, defaultVal):
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1728
 libovr.ovr_SetFloat.restype = Bool
-libovr.ovr_SetFloat.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.c_float]
+libovr.ovr_SetFloat.argtypes = [Hmd, String, ctypes.c_float]
 def setFloat(hmd, propertyName, value):
     """
     Writes or creates a float property.
@@ -2062,13 +2061,13 @@ def setFloat(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetFloat(hmd, None if propertyName is None else byref(propertyName), value)
+    result = libovr.ovr_SetFloat(hmd, None if propertyName is None else propertyName, value)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1739
 libovr.ovr_GetFloatArray.restype = ctypes.c_uint
-libovr.ovr_GetFloatArray.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
+libovr.ovr_GetFloatArray.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
 def getFloatArray(hmd, propertyName, values, valuesCapacity):
     """
     Reads a float array property.
@@ -2079,13 +2078,13 @@ def getFloatArray(hmd, propertyName, values, valuesCapacity):
     \param[in] valuesCapacity Specifies the maximum number of elements to write to the values array.
     \return Returns the number of elements read, or 0 if property doesn't exist or is empty.
     """
-    result = libovr.ovr_GetFloatArray(hmd, None if propertyName is None else byref(propertyName), None if values is None else byref(values), valuesCapacity)
+    result = libovr.ovr_GetFloatArray(hmd, None if propertyName is None else propertyName, None if values is None else byref(values), valuesCapacity)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1749
 libovr.ovr_SetFloatArray.restype = Bool
-libovr.ovr_SetFloatArray.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
+libovr.ovr_SetFloatArray.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_float), ctypes.c_uint]
 def setFloatArray(hmd, propertyName, values, valuesSize):
     """
     Writes or creates a float array property.
@@ -2097,13 +2096,13 @@ def setFloatArray(hmd, propertyName, values, valuesSize):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetFloatArray(hmd, None if propertyName is None else byref(propertyName), None if values is None else byref(values), valuesSize)
+    result = libovr.ovr_SetFloatArray(hmd, None if propertyName is None else propertyName, None if values is None else byref(values), valuesSize)
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1761
 libovr.ovr_GetString.restype = ctypes.POINTER(ctypes.c_char)
-libovr.ovr_GetString.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
+libovr.ovr_GetString.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_char)]
 def getString(hmd, propertyName, defaultVal):
     """
     Reads a string property.
@@ -2116,13 +2115,13 @@ def getString(hmd, propertyName, defaultVal):
             The return memory is guaranteed to be valid until next call to ovr_GetString or
             until the HMD is destroyed, whichever occurs first.
     """
-    result = libovr.ovr_GetString(hmd, None if propertyName is None else byref(propertyName), None if defaultVal is None else byref(defaultVal))
+    result = libovr.ovr_GetString(hmd, None if propertyName is None else propertyName, None if defaultVal is None else byref(defaultVal))
     return result
 
 
 # Translated from header file OVR_CAPI_0_7_0.h line 1773
 libovr.ovr_SetString.restype = Bool
-libovr.ovr_SetString.argtypes = [Hmd, ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
+libovr.ovr_SetString.argtypes = [Hmd, String, ctypes.POINTER(ctypes.c_char)]
 def setString(hmd, propertyName, value):
     """
     Writes or creates a string property.
@@ -2134,7 +2133,7 @@ def setString(hmd, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetString(hmd, None if propertyName is None else byref(propertyName), None if value is None else byref(value))
+    result = libovr.ovr_SetString(hmd, None if propertyName is None else propertyName, None if value is None else byref(value))
     return result
 
 
@@ -2547,49 +2546,3 @@ if __name__ == "__main__":
     destroy(hmd)
     shutdown()
 
-
-class Rift():
-    @staticmethod
-    def initialize():
-        if (0 == initialize()):
-            raise SystemError("Unable to initialize the Oculus SDK")
-
-    @staticmethod
-    def shutdown():
-        shutdown()
-
-    def __init__(self, index = 0):
-        self.hmd, self.luid = create()
-
-    def destroy(self):
-        destroy(self.hmd)
-        self.hmd = None
-
-    def get_last_error(self):
-        return getLastErrorInfo(self.hmd);
-
-    def configure_tracking(self, supported_caps = 
-                     TrackingCap_Orientation |
-                     TrackingCap_MagYawCorrection |
-                     TrackingCap_Position, 
-                     required_caps = 0):
-        configureTracking(self.hmd, supported_caps, required_caps)
-
-    def recenter_pose(self):
-        return recenterPose(self.hmd)
-
-    def get_tracking_state(self, absTime = 0):
-        return getTrackingState(self.hmd, absTime)
-
-    def get_fov_texture_size(self, eye, fov_port, pixels_per_display_pixel = 1.0):
-        return getFovTextureSize(self.hmd, eye, fov_port, pixels_per_display_pixel);
-
-    @staticmethod
-    def get_perspective(fov, near, far, right_handed):
-        return matrix4f_Projection(fov, near, far, '\x01' if right_handed else '\x00')
-
-    def get_float(self, name, default):
-        return getFloat(self.hmd, name, default)
-
-    def get_string(self, name, default):
-        return getString(self.hmd, name, default)
