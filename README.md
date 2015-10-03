@@ -4,9 +4,9 @@
 ## Installation
 - [ ] Install Python 2.7 https://www.python.org/download/releases/2.7/ (32-bit version)
 - [ ] Install Oculus Rift Runtime 0.7.0 https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/
-- [ ] ```git clone https://github.com/cmbruns/pyovr.git```
-- [ ] ```cd pyovr```
-- [ ] ```python setup.py install```
+- [ ] ``pip install ovr``
+
+If the above command fails, you might need to install `pip` http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows
 
 ## Use
 
