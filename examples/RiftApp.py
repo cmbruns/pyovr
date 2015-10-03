@@ -6,16 +6,11 @@ from OpenGL.GL import *
 
 class RiftApp():
   def __init__(self):
-    print("Hello")
     ovr.initialize(None)
     self.hmd, self.luid = ovr.create()
     self.hmdDesc = ovr.getHmdDesc(self.hmd)
     self.frame = 0
-    # Workaround for a race condition bug in the SDK
-    import time
-    time.sleep(0.1)
 
-    # print "Rift screen size = ", self.hmdDesc.Resolution        
     ovr.configureTracking(self.hmd, 
         ovr.TrackingCap_Orientation | # supported capabilities
         ovr.TrackingCap_MagYawCorrection |
@@ -27,16 +22,12 @@ class RiftApp():
       self.hmdDesc.DefaultEyeFov[1]
     )
 
-    projections = map(
+    self.projections = map(
       lambda fovPort:
         (ovr.matrix4f_Projection(
            fovPort, 0.01, 1000, True)),
       self.fovPorts
     )
-    self.projections = map(
-      lambda pr:
-        pr.toList(),
-      projections)
 
   def close(self):
     glDeleteFramebuffers(1, self.fbo)

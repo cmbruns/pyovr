@@ -74,7 +74,7 @@ class RiftDemo(RiftApp):
   def __init__(self):
     RiftApp.__init__(self)
     self.cube_size = ovr.getFloat(self.hmd, 
-      ovr.OVR_KEY_IPD, ovr.OVR_DEFAULT_IPD)
+      ovr.KEY_IPD, ovr.DEFAULT_IPD)
     self.reset_camera()
     
   def reset_camera(self):
@@ -132,19 +132,19 @@ class RiftDemo(RiftApp):
   def render_scene(self):
     eye = self.currentEye;
 
-    # apply it to the eyeview matrix
     eyeview = ovrPoseToMat4(self.poses[eye])
   
     # apply the camera position
     cameraview = self.camera * eyeview  
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
-    glLoadMatrixf(self.projections[eye])
+    glLoadMatrixf(self.projections[eye].toList())
+
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity();
     glLoadMatrixf(cameraview.inverse().toList())
-    #glMultMatrixf(self.camera.inverse().toList())
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     draw_color_cube(self.cube_size)
 
 

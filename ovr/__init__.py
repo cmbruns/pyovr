@@ -2447,80 +2447,82 @@ def matrix4f_Projection(fov, znear, zfar, projectionModFlags):
     
     \see ovrProjectionModifier
     """
-    #result = libovr.ovrMatrix4f_Projection(fov, znear, zfar, projectionModFlags)
-    #return result
-    rightHanded    = (projectionModFlags & Projection_RightHanded) > 0
-    flipZ          = (projectionModFlags & Projection_FarLessThanNear) > 0
-    farAtInfinity  = (projectionModFlags & Projection_FarClipAtInfinity) > 0
-    isOpenGL       = (projectionModFlags & Projection_ClipRangeOpenGL) > 0
+    result = libovr.ovrMatrix4f_Projection(fov, znear, zfar, projectionModFlags)
+    return result
 
-    if farAtInfinity and not flipZ :
-        farAtInfinity = False;
-
-    projXScale = 2.0 / ( fov.LeftTan + fov.RightTan )
-    projXOffset = ( fov.LeftTan - fov.RightTan ) * projXScale * 0.5
-    projYScale = 2.0 / ( fov.UpTan + fov.DownTan )
-    projYOffset = ( fov.UpTan - fov.DownTan ) * projYScale * 0.5
-
-    scale = Vector2f(projXScale, projYScale)
-    offset = Vector2f(projXOffset, projYOffset)
-    handednessScale = 1.0
-    if rightHanded:
-      handednessScale = -1.0
-
-    zscale = 1.0
-    if flipZ:
-      zscale = -1.0
-
-    projection = Matrix4f()
-    # Produces X result, mapping clip edges to [-w,+w]
-    projection.M[0][0] = scale.x
-    projection.M[0][1] = 0.0
-    projection.M[0][2] = handednessScale * offset.x
-    projection.M[0][3] = 0.0
-
-    # Produces Y result, mapping clip edges to [-w,+w]
-    # Hey - why is that YOffset negated?
-    # It's because a projection matrix transforms from world coords with Y=up,
-    # whereas this is derived from an NDC scaling, which is Y=down.
-    projection.M[1][0] = 0.0
-    projection.M[1][1] = scale.y
-    projection.M[1][2] = handednessScale * -offset.y
-    projection.M[1][3] = 0.0
-
-    # Produces Z-buffer result - app needs to fill this in with whatever Z range it wants.
-    # We'll just use some defaults for now.
-    projection.M[2][0] = 0.0
-    projection.M[2][1] = 0.0
-
-    if farAtInfinity:
-      if isOpenGL:
-        # It's not clear this makes sense for OpenGL - you don't get the same precision benefits you do in D3D.
-        projection.M[2][2] = -handednessScale
-        projection.M[2][3] = 2.0 * znear
-      else:
-        projection.M[2][2] = 0.0;
-        projection.M[2][3] = znear;
-    else:
-      if isOpenGL:
-        # Clip range is [-w,+w], so 0 is at the middle of the range.
-        projection.M[2][2] = -handednessScale * zscale * (znear + zfar) / (znear - zfar);
-        projection.M[2][3] = 2.0 * zscale * zfar * znear / (znear - zfar);
-      else:
-        # Clip range is [0,+w], so 0 is at the start of the range.
-        near = -znear;
-        if flipZ:
-          near = zfar;
-        projection.M[2][2] = -handednessScale * near / (znear - zfar);
-        projection.M[2][3] = zscale * zfar * znear / (znear - zfar);
-
-    # Produces W result (= Z in)
-    projection.M[3][0] = 0.0;
-    projection.M[3][1] = 0.0;
-    projection.M[3][2] = handednessScale;
-    projection.M[3][3] = 0.0;
-
-    return projection;
+# apparently not needed, don't know why the SDK doesn't use the DLL projection matrix.
+#     rightHanded    = (projectionModFlags & Projection_RightHanded) > 0
+#     flipZ          = (projectionModFlags & Projection_FarLessThanNear) > 0
+#     farAtInfinity  = (projectionModFlags & Projection_FarClipAtInfinity) > 0
+#     isOpenGL       = (projectionModFlags & Projection_ClipRangeOpenGL) > 0
+# 
+#     if farAtInfinity and not flipZ :
+#         farAtInfinity = False;
+# 
+#     projXScale = 2.0 / ( fov.LeftTan + fov.RightTan )
+#     projXOffset = ( fov.LeftTan - fov.RightTan ) * projXScale * 0.5
+#     projYScale = 2.0 / ( fov.UpTan + fov.DownTan )
+#     projYOffset = ( fov.UpTan - fov.DownTan ) * projYScale * 0.5
+# 
+#     scale = Vector2f(projXScale, projYScale)
+#     offset = Vector2f(projXOffset, projYOffset)
+#     handednessScale = 1.0
+#     if rightHanded:
+#       handednessScale = -1.0
+# 
+#     zscale = 1.0
+#     if flipZ:
+#       zscale = -1.0
+# 
+#     projection = Matrix4f()
+#     # Produces X result, mapping clip edges to [-w,+w]
+#     projection.M[0][0] = scale.x
+#     projection.M[0][1] = 0.0
+#     projection.M[0][2] = handednessScale * offset.x
+#     projection.M[0][3] = 0.0
+# 
+#     # Produces Y result, mapping clip edges to [-w,+w]
+#     # Hey - why is that YOffset negated?
+#     # It's because a projection matrix transforms from world coords with Y=up,
+#     # whereas this is derived from an NDC scaling, which is Y=down.
+#     projection.M[1][0] = 0.0
+#     projection.M[1][1] = scale.y
+#     projection.M[1][2] = handednessScale * -offset.y
+#     projection.M[1][3] = 0.0
+# 
+#     # Produces Z-buffer result - app needs to fill this in with whatever Z range it wants.
+#     # We'll just use some defaults for now.
+#     projection.M[2][0] = 0.0
+#     projection.M[2][1] = 0.0
+# 
+#     if farAtInfinity:
+#       if isOpenGL:
+#         # It's not clear this makes sense for OpenGL - you don't get the same precision benefits you do in D3D.
+#         projection.M[2][2] = -handednessScale
+#         projection.M[2][3] = 2.0 * znear
+#       else:
+#         projection.M[2][2] = 0.0;
+#         projection.M[2][3] = znear;
+#     else:
+#       if isOpenGL:
+#         # Clip range is [-w,+w], so 0 is at the middle of the range.
+#         projection.M[2][2] = -handednessScale * zscale * (znear + zfar) / (znear - zfar);
+#         projection.M[2][3] = 2.0 * zscale * zfar * znear / (znear - zfar);
+#       else:
+#         # Clip range is [0,+w], so 0 is at the start of the range.
+#         near = -znear;
+#         if flipZ:
+#           near = zfar;
+#         projection.M[2][2] = -handednessScale * near / (znear - zfar);
+#         projection.M[2][3] = zscale * zfar * znear / (znear - zfar);
+# 
+#     # Produces W result (= Z in)
+#     projection.M[3][0] = 0.0;
+#     projection.M[3][1] = 0.0;
+#     projection.M[3][2] = handednessScale;
+#     projection.M[3][3] = 0.0;
+# 
+#     return projection;
 
 
 # Translated from header file OVR_CAPI_Util.h line 61
@@ -2604,77 +2606,6 @@ def getEyePoses(hmd, frameIndex, hmdToEyeViewOffset, outEyePoses):
 
 
 ### END Declarations from C header file OVR_CAPI_Util.h ###
-
-
-try:
-    OVR_KEY_USER = 'User'
-except:
-    pass
-
-try:
-    OVR_KEY_NAME = 'Name'
-except:
-    pass
-
-try:
-    OVR_KEY_GENDER = 'Gender'
-except:
-    pass
-
-try:
-    OVR_KEY_PLAYER_HEIGHT = 'PlayerHeight'
-except:
-    pass
-
-try:
-    OVR_KEY_EYE_HEIGHT = 'EyeHeight'
-except:
-    pass
-
-try:
-    OVR_KEY_IPD = "IPD"
-except:
-    pass
-
-try:
-    OVR_KEY_NECK_TO_EYE_DISTANCE = 'NeckEyeDistance'
-except:
-    pass
-
-try:
-    OVR_DEFAULT_GENDER = 'Unknown'
-except:
-    pass
-
-try:
-    OVR_DEFAULT_PLAYER_HEIGHT = 1.778
-except:
-    pass
-
-try:
-    OVR_DEFAULT_EYE_HEIGHT = 1.675
-except:
-    pass
-
-try:
-    OVR_DEFAULT_IPD = 0.064
-except:
-    pass
-
-try:
-    OVR_DEFAULT_NECK_TO_EYE_HORIZONTAL = 0.0805
-except:
-    pass
-
-try:
-    OVR_DEFAULT_NECK_TO_EYE_VERTICAL = 0.075
-except:
-    pass
-
-try:
-    OVR_DEFAULT_EYE_RELIEF_DIAL = 3
-except:
-    pass
 
 
 # Run test program
