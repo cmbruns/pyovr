@@ -1,6 +1,8 @@
 # pyovr
 ### Python bindings for Oculus Rift SDK
 
+![Screenshot of pygame/RiftDemo.py](https://raw.githubusercontent.com/cmbruns/pyovr/master/examples/pygame/RiftDemo.png)
+
 ## Installation
 - [ ] Install Python 2.7 https://www.python.org/download/releases/2.7/ (32-bit version)
 - [ ] Install Oculus Rift Runtime 0.7.0 https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/
