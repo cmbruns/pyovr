@@ -111,7 +111,7 @@ class GlutRenderer():
     def dispose_gl(self):
         "Release resources used for OpenGL rendering"
         if self.fbo is not None:
-            glDeleteFramebuffers( [self.fbo] )
+            glDeleteFramebuffers( 1, [self.fbo] )
 
     def key_press(self, key, x, y):
         if ord(key) == 27:
