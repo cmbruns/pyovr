@@ -2,13 +2,10 @@ import ovr
 from OpenGL.GL import GL_RGBA8
 
 class Rift():
-    @staticmethod
-    def initialize(params=None):
-      return ovr.initialize(params)
 
     @staticmethod
-    def shutdown():
-      ovr.shutdown()
+    def calc_eye_poses(headPose, hmdToEyeViewOffset, outEyePoses):
+      ovr.calcEyePoses(headPose, hmdToEyeViewOffset, outEyePoses)
 
     @staticmethod
     def get_last_error(self):
@@ -21,6 +18,14 @@ class Rift():
     @staticmethod
     def get_perspective(fov, near, far, projectionFlags = ovr.Projection_RightHanded):
       return ovr.matrix4f_Projection(fov, near, far, projectionFlags)
+
+    @staticmethod
+    def initialize(params=None):
+      return ovr.initialize(params)
+
+    @staticmethod
+    def shutdown():
+      ovr.shutdown()
 
     def __init__(self):
       self.hmd = None
@@ -42,10 +47,8 @@ class Rift():
                            required_caps = 0):
       return ovr.configureTracking(self.hmd, supported_caps, required_caps)
 
-
-    def init(self):
-      self.hmd, self.luid = ovr.create()
-      self.hmdDesc = ovr.getHmdDesc(self.hmd)
+    def create_swap_texture(self, size, format_ = GL_RGBA8):
+      return ovr.createSwapTextureSetGL(self.hmd, format_, size.w, size.h)
 
     def destroy(self):
       if self.hmd is not None:
@@ -55,11 +58,8 @@ class Rift():
       self.hmdDesc = None
       self.hmd = None
 
-    def recenter_pose(self):
-      return ovr.recenterPose(self.hmd)
-
-    def get_tracking_state(self, absTime=0):
-      return ovr.getTrackingState(self.hmd, absTime)
+    def destroy_swap_texture(self, textureSet):
+      return ovr.destroySwapTextureSet(self.hmd, textureSet)
 
     def get_fov_texture_size(self, eye, fov_port, pixels_per_display_pixel=1.0):
       return ovr.getFovTextureSize(self.hmd, eye, fov_port, pixels_per_display_pixel);
@@ -70,24 +70,32 @@ class Rift():
       ovr.getEyePoses(self.hmd, frame_index, in_arr, out_arr)
       return out_arr;
 
-    def create_swap_texture(self, size, format_ = GL_RGBA8):
-      return ovr.createSwapTextureSetGL(self.hmd, format_, size.w, size.h)
-
-    def destroy_swap_texture(self, textureSet):
-      return ovr.destroySwapTextureSet(self.hmd, textureSet)
-
-    def get_render_desc(self, eye, fov):
-      return ovr.getRenderDesc(self.hmd, eye, fov)
-
     def get_float(self, name, default):
       return ovr.getFloat(self.hmd, name, default)
+
+    def get_frame_timing(self, frameIndex):
+      return ovr.getFrameTiming(self.hmd, frameIndex)
 
     def get_string(self, name, default):
       return ovr.getString(self.hmd, name, default)
 
+    def get_render_desc(self, eye, fov):
+      return ovr.getRenderDesc(self.hmd, eye, fov)
+
     def get_resolution(self):
       return self.hmdDesc.Resolution
 
+    def get_tracking_state(self, absTime=0):
+      return ovr.getTrackingState(self.hmd, absTime)
+
+    def init(self):
+      self.hmd, self.luid = ovr.create()
+      self.hmdDesc = ovr.getHmdDesc(self.hmd)
+
     def submit_frame(self, frameIndex, viewScaleDesc, layerPtrList, layerCount):
       return ovr.submitFrame(self.hmd, frameIndex, viewScaleDesc, layerPtrList, layerCount)
+
+    def recenter_pose(self):
+      return ovr.recenterPose(self.hmd)
+
 
