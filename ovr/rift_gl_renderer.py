@@ -29,6 +29,7 @@ class RiftGLRenderer(list):
     def display_gl(self):
         # 1) desktop (non-Rift) pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self._set_up_desktop_projection()
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -43,6 +44,7 @@ class RiftGLRenderer(list):
                 texId,
                 0)
         # print format(glCheckFramebufferStatus(GL_FRAMEBUFFER), '#X'), GL_FRAMEBUFFER_COMPLETE
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)        
         for eye in range(2):
             # Set up eye viewport
             v = layer.Viewport[eye]
@@ -76,6 +78,7 @@ class RiftGLRenderer(list):
             self.rift.destroy_swap_texture(self.pTextureSet)       
 
     def init_gl(self):
+        glClearColor(0, 0, 1, 0)
         self._init_rift_render_layer()
         self.fbo = glGenFramebuffers(1)
         self._set_up_desktop_projection()
