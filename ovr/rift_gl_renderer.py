@@ -27,6 +27,10 @@ class RiftGLRenderer(list):
         self.rift.configure_tracking()
 
     def display_gl(self):
+        self.display_rift_gl()
+        self.display_desktop_gl()
+
+    def display_desktop_gl(self):
         # 1) desktop (non-Rift) pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -35,6 +39,8 @@ class RiftGLRenderer(list):
         glLoadIdentity()
         for actor in self:
             actor.display_gl()
+
+    def display_rift_gl(self):
         # 2) Rift pass
         glBindFramebuffer(GL_FRAMEBUFFER, self.fbo)
         layer, texId = self._update_gl_poses()
