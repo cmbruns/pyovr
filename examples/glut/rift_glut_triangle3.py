@@ -6,17 +6,15 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 
 
-from ovr.rift_gl_renderer import RiftGLRenderer
-from ovr.triangle_drawer import TriangleDrawer
-
-
+from ovr.rift_gl_renderer_compatibility import RiftGLRendererCompatibility
+from ovr.triangle_drawer_compatibility import TriangleDrawerCompatibility
 
 
 class GlutDemoApp():
 
     def __init__(self):
-        self.renderer = RiftGLRenderer()
-        self.renderer.append(TriangleDrawer())
+        self.renderer = RiftGLRendererCompatibility()
+        self.renderer.append(TriangleDrawerCompatibility())
         glutInit()
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE)
         glutInitWindowSize(400, 400)
@@ -27,6 +25,7 @@ class GlutDemoApp():
         glutReshapeFunc(self.renderer.resize_gl)
         glutKeyboardFunc(self.key_press)
         self.renderer.init_gl()
+        self.renderer.rift.recenter_pose()
         glutMainLoop()        
 
     def display(self):

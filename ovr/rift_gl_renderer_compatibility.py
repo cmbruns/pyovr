@@ -12,7 +12,7 @@ from ovr.rift import Rift
 import ovr
 
 
-class RiftGLRenderer(list):
+class RiftGLRendererCompatibility(list):
     "Class RiftGLRenderer is a list of OpenGL actors"
 
     def __init__(self):

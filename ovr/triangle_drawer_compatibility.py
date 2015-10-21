@@ -4,7 +4,7 @@
 from OpenGL.GL import *
 
 
-class TriangleDrawer():
+class TriangleDrawerCompatibility():
     
     def init_gl(self):
         pass

@@ -11,17 +11,17 @@ from PySide.QtGui import *
 from PySide.QtOpenGL import *
 
 
-from ovr.triangle_drawer import TriangleDrawer
-from ovr.rift_gl_renderer import RiftGLRenderer
+from ovr.triangle_drawer_compatibility import TriangleDrawerCompatibility
+from ovr.rift_gl_renderer_compatibility import RiftGLRendererCompatibility
 
 
 class DemoWidget(QGLWidget):
 
     def __init__(self):
         super(DemoWidget, self).__init__()
-        self.renderer = RiftGLRenderer()
+        self.renderer = RiftGLRendererCompatibility()
         # Paint a triangle in the center of the screen
-        self.renderer.append(TriangleDrawer())
+        self.renderer.append(TriangleDrawerCompatibility())
         # Update Rift outside of normal paintGL() sequence,
         # so we don't have to worry about vsync or monitor frame rate.
         self.riftTimer = QTimer(self)
@@ -60,7 +60,7 @@ class DemoWidget(QGLWidget):
 if __name__ == "__main__":
     # Create a Qt application
     app = QApplication(sys.argv)
-    # Create a Label and show it
+    # Create a window and show it
     win = QMainWindow()
     glw = DemoWidget()
     win.setCentralWidget(glw)
