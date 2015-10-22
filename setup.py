@@ -2,16 +2,17 @@
 
 from distutils.core import setup
 
-_PYOVR_VERSION = "0.7.0004pre" # Two digits for Oculus minor revision, two digits for wrapper version
+# Load module version from ovr/version.py
+exec(open('ovr/version.py').read())
 
 setup(
     name = "ovr",
-    version = _PYOVR_VERSION,
+    version = __version__,
     author = "Christopher Bruns",
     author_email = "cmbruns@rotatingpenguin.com",
     description = "Oculus Rift SDK (libOVR) bindings using ctypes",
     url = "https://github.com/cmbruns/pyovr",
-    download_url = "https://github.com/cmbruns/pyovr/tarball/" + _PYOVR_VERSION,
+    download_url = "https://github.com/cmbruns/pyovr/tarball/" + __version__,
     packages=['ovr'],
     keywords = "ovr oculus rift",
     classifiers = [],
