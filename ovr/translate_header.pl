@@ -5,15 +5,15 @@ use strict;
 use File::Basename;
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "C:/Program Files/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
-# my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.7.0.0/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Program Files/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
+my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 
 # 2) Edit this list to change the set of header files to translate
 my @header_files = (
     "OVR_Version.h",
     "OVR_CAPI_Keys.h",
     "OVR_ErrorCode.h",
-    "OVR_CAPI_0_7_0.h",
+    "OVR_CAPI_0_8_0.h",
     "OVR_CAPI_GL.h",
     "Extras/OVR_CAPI_Util.h",
 );
@@ -123,7 +123,7 @@ sub translate_header {
     print $fh <<'END_PREAMBLE';
 """
 Python module "ovr"
-Python bindings for Oculus Rift SDK version 0.7.0
+Python bindings for Oculus Rift SDK version 0.8.0
 
 Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
@@ -140,16 +140,16 @@ OVR_PTR_SIZE = sizeof(c_voidp) # distinguish 32 vs 64 bit python
 
 # Load Oculus runtime library (only tested on Windows)
 # 1) Figure out name of library to load
-_libname = "OVRRT32_0_7" # 32-bit python
+_libname = "OVRRT32_0_8" # 32-bit python
 if OVR_PTR_SIZE == 8:
-    _libname = "OVRRT64_0_7" # 64-bit python
+    _libname = "OVRRT64_0_8" # 64-bit python
 if platform.system().startswith("Win"):
-    _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_7"
+    _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_8"
 # Load library
 try:
     libovr = CDLL(_libname)
 except:
-    print "Is Oculus Runtime 0.7 installed on this machine?"
+    print "Is Oculus Runtime 0.8 installed on this machine?"
     raise
 
 
@@ -306,7 +306,7 @@ sub process_constants {
         my $comment = $3;
         my $p = pos($code) - length($&);
 
-        next if $key =~ m/_h$/; # OVR_CAPI_0_7_0_h
+        next if $key =~ m/_h$/; # OVR_CAPI_0_8_0_h
         next if $key =~ m/_DEFINED$/; # OVR_SUCCESS_DEFINED
 
         $value =~ s/f$//; # Remove float tag from literals
@@ -921,6 +921,7 @@ sub translate_type {
     if ($type =~ m/^\s*(?:const\s+)?char\s*\*\s*$/) {
         $type = "c_char_p"; # strings
     }
+    $type =~ s/\blong\s+long\b/longlong/;
     if ($type =~ m/^(float|u?int|double|u?char|u?short|u?long)/) {
         $type = "c_$type";
     }

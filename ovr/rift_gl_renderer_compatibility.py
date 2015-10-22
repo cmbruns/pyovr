@@ -24,7 +24,7 @@ class RiftGLRendererCompatibility(list):
         self.rift = Rift()
         Rift.initialize()
         self.rift.init() # TODO: Yuck initialize() init()
-        self.rift.configure_tracking()
+        # self.rift.configure_tracking()
 
     def display_gl(self):
         self.display_rift_gl()
@@ -164,8 +164,8 @@ class RiftGLRendererCompatibility(list):
 
     def _update_gl_poses(self):
         # 2a) Use ovr_GetTrackingState and ovr_CalcEyePoses to compute eye poses needed for view rendering based on frame timing information
-        ftiming  = self.rift.get_frame_timing(self.frame_index)
-        hmdState = self.rift.get_tracking_state(ftiming.DisplayMidpointSeconds)
+        displayMidpointSeconds = self.rift.get_predicted_display_time(self.frame_index)
+        hmdState = self.rift.get_tracking_state(displayMidpointSeconds, True)
         # print hmdState.HeadPose.ThePose
         self.rift.calc_eye_poses(hmdState.HeadPose.ThePose, 
                 self.hmdToEyeViewOffset, self.layer.RenderPose)

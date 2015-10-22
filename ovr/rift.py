@@ -73,8 +73,8 @@ class Rift():
     def get_float(self, name, default):
       return ovr.getFloat(self.hmd, name, default)
 
-    def get_frame_timing(self, frameIndex):
-      return ovr.getFrameTiming(self.hmd, frameIndex)
+    def get_predicted_display_time(self, frameIndex):
+      return ovr.getPredictedDisplayTime(self.hmd, frameIndex)
 
     def get_string(self, name, default):
       return ovr.getString(self.hmd, name, default)
@@ -85,8 +85,12 @@ class Rift():
     def get_resolution(self):
       return self.hmdDesc.Resolution
 
-    def get_tracking_state(self, absTime=0):
-      return ovr.getTrackingState(self.hmd, absTime)
+    def get_tracking_state(self, absTime=0, latencyMarker=True):
+      if latencyMarker:
+        lm = ovr.ovrTrue
+      else:
+        lm = ovr.ovrFalse
+      return ovr.getTrackingState(self.hmd, absTime, lm)
 
     def init(self):
       self.hmd, self.luid = ovr.create()
