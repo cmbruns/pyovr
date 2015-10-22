@@ -193,6 +193,15 @@ def byref(obj):
     b = None if obj is None else ctypes.byref(obj)
     return b
 
+def toOvrBool(arg):
+    "Convert python True/False to OVR c_char boolean value 1/0"
+    if arg == chr(0):
+        return False
+    elif arg:
+        return chr(1)
+    else 
+        return chr(0)
+
 END_PREAMBLE
 
     process_headers($fh);
