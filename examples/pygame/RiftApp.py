@@ -146,7 +146,7 @@ class RiftApp():
     self.frame += 1
 
     # Fetch the head pose
-    self.poses = self.rift.get_eye_poses(self.frame, self.eyeOffsets)
+    self.poses = self.rift.get_eye_poses(self.frame, ovr.ovrTrue, self.eyeOffsets)
 
     # Active the offscreen framebuffer and render the scene
     self.framebuffer.bind()

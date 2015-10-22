@@ -64,10 +64,10 @@ class Rift():
     def get_fov_texture_size(self, eye, fov_port, pixels_per_display_pixel=1.0):
       return ovr.getFovTextureSize(self.hmd, eye, fov_port, pixels_per_display_pixel);
 
-    def get_eye_poses(self, frame_index, eyeOffsets, trackingState=0):
+    def get_eye_poses(self, frame_index, latencyMarker, eyeOffsets, trackingState=0):
       in_arr = (ovr.Vector3f * 2)(*eyeOffsets)
       out_arr = (ovr.Posef * 2)()
-      ovr.getEyePoses(self.hmd, frame_index, in_arr, out_arr)
+      ovr.getEyePoses(self.hmd, frame_index, latencyMarker, in_arr, out_arr)
       return out_arr;
 
     def get_float(self, name, default):
