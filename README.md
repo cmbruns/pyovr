@@ -5,7 +5,7 @@
 
 ## Installation
 - [ ] Install Python 2.7 https://www.python.org/download/releases/2.7/ (32-bit version)
-- [ ] Install Oculus Rift Runtime 0.7.0 https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/
+- [ ] Install Oculus Rift Runtime 0.8.0 https://developer.oculus.com/downloads/pc/0.8.0.0-beta/Oculus_Runtime_for_Windows/
 - [ ] ``pip install ovr``
 
 If the above command fails, you might need to install `pip` http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows
@@ -23,15 +23,9 @@ ovr.initialize(None)
 hmd, luid = ovr.create()
 hmdDesc = ovr.getHmdDesc(hmd)
 print hmdDesc.ProductName
-# Start the sensor which provides the Rift's pose and motion.
-ovr.configureTracking(hmd, 
-    ovr.TrackingCap_Orientation | # supported capabilities
-    ovr.TrackingCap_MagYawCorrection |
-    ovr.TrackingCap_Position, 
-    0) # required capabilities
 while True:
     # Query the HMD for the current tracking state.
-    ts  = ovr.getTrackingState(hmd, ovr.getTimeInSeconds())
+    ts  = ovr.getTrackingState(hmd, ovr.getTimeInSeconds(), ovr.ovrTrue)
     if ts.StatusFlags & (ovr.Status_OrientationTracked | ovr.Status_PositionTracked):
         pose = ts.HeadPose
         print pose.ThePose
@@ -46,7 +40,7 @@ Look in the "examples" folder for more example code.
 ## Details
 Runs on Windows only at the moment, but so does OVR SDK 0.7.0
 
-This python module uses the installed 32-bit OVR dll on Windows, so you must have the Oculus 0.7 Runtime installed to use this module. Get the Oculus Runtime at https://developer.oculus.com/downloads/pc/0.7.0.0-beta/Oculus_Runtime_for_Windows/
+This python module uses the installed 32-bit OVR dll on Windows, so you must have the Oculus 0.8 Runtime installed to use this module. Get the Oculus Runtime at https://developer.oculus.com/downloads/pc/0.8.0.0-beta/Oculus_Runtime_for_Windows/
 
 This module also assumes you are running a 32-bit version of python. In particular, it was developed and tested with 32-bit Python version 2.7 installed from https://www.python.org/downloads/release/python-2710/
 
