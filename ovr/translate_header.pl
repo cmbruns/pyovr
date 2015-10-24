@@ -5,8 +5,9 @@ use strict;
 use File::Basename;
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
+my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Program Files/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
-my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 
 # 2) Edit this list to change the set of header files to translate
 my @header_files = (
@@ -193,14 +194,18 @@ def byref(obj):
     b = None if obj is None else ctypes.byref(obj)
     return b
 
+ovrFalse = c_char(chr(0)) # note potential conflict with Python built in symbols
+ovrTrue = c_char(chr(1))
+
 def toOvrBool(arg):
-    "Convert python True/False to OVR c_char boolean value 1/0"
+    # One tricky case:
     if arg == chr(0):
-        return False
-    elif arg:
-        return chr(1)
-    else 
-        return chr(0)
+        return ovrFalse
+    # Remainder are easy cases:
+    if bool(arg):
+        return ovrTrue
+    else:
+        return ovrFalse
 
 END_PREAMBLE
 
@@ -477,6 +482,11 @@ sub process_functions {
         foreach my $arg (@arg_names) {
             if (exists $byref_args{$arg}) {
                 $arg = "byref($arg)";
+            }
+            # Wrap Bool args with "toOvrBool()"
+            my $type = $types_by_arg{$arg};
+            if (defined($type) and $type =~ m/^Bool$/) {
+                $arg = "toOvrBool($arg)";
             }
             push @call_args, $arg;
         }

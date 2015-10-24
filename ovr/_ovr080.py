@@ -355,8 +355,19 @@ Error_RuntimeException           = -7000   #< A runtime exception occurred. The 
 
 # Translated from header file OVR_CAPI_0_8_0.h line 264
 Bool = c_char    #< Boolean type
-ovrFalse = chr(0) # note conflict with Python built in symbols
-ovrTrue = chr(1)
+
+ovrFalse = c_char(chr(0)) # note potential conflict with Python built in symbols
+ovrTrue = c_char(chr(1))
+
+def toOvrBool(arg):
+    # One tricky case:
+    if arg == chr(0):
+        return ovrFalse
+    # Remainder are easy cases:
+    if bool(arg):
+        return ovrTrue
+    else:
+        return ovrFalse
 
 
 # Translated from header file OVR_CAPI_0_8_0.h line 272
