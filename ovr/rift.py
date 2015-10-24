@@ -86,11 +86,7 @@ class Rift():
       return self.hmdDesc.Resolution
 
     def get_tracking_state(self, absTime=0, latencyMarker=True):
-      if latencyMarker:
-        lm = ovr.ovrTrue
-      else:
-        lm = ovr.ovrFalse
-      return ovr.getTrackingState(self.hmd, absTime, lm)
+      return ovr.getTrackingState(self.hmd, absTime, latencyMarker)
 
     def init(self):
       self.hmd, self.luid = ovr.create()

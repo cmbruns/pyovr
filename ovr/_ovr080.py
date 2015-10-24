@@ -70,6 +70,19 @@ def byref(obj):
     b = None if obj is None else ctypes.byref(obj)
     return b
 
+ovrFalse = c_char(chr(0)) # note potential conflict with Python built in symbols
+ovrTrue = c_char(chr(1))
+
+def toOvrBool(arg):
+    # One tricky case:
+    if arg == chr(0):
+        return ovrFalse
+    # Remainder are easy cases:
+    if bool(arg):
+        return ovrTrue
+    else:
+        return ovrFalse
+
 ### BEGIN Declarations from C header file OVR_Version.h ###
 
 
@@ -355,19 +368,6 @@ Error_RuntimeException           = -7000   #< A runtime exception occurred. The 
 
 # Translated from header file OVR_CAPI_0_8_0.h line 264
 Bool = c_char    #< Boolean type
-
-ovrFalse = c_char(chr(0)) # note potential conflict with Python built in symbols
-ovrTrue = c_char(chr(1))
-
-def toOvrBool(arg):
-    # One tricky case:
-    if arg == chr(0):
-        return ovrFalse
-    # Remainder are easy cases:
-    if bool(arg):
-        return ovrTrue
-    else:
-        return ovrFalse
 
 
 # Translated from header file OVR_CAPI_0_8_0.h line 272
@@ -1517,7 +1517,7 @@ def getTrackingState(session, absTime, latencyMarker):
     
     \see ovrTrackingState, ovr_GetEyePoses, ovr_GetTimeInSeconds
     """
-    result = libovr.ovr_GetTrackingState(session, absTime, latencyMarker)
+    result = libovr.ovr_GetTrackingState(session, absTime, toOvrBool(latencyMarker))
     return result
 
 
@@ -2142,7 +2142,7 @@ def getBool(session, propertyName, defaultVal):
     \return Returns the property interpreted as a boolean value. Returns defaultVal if
             the property doesn't exist.
     """
-    result = libovr.ovr_GetBool(session, propertyName, defaultVal)
+    result = libovr.ovr_GetBool(session, propertyName, toOvrBool(defaultVal))
     return result
 
 
@@ -2160,7 +2160,7 @@ def setBool(session, propertyName, value):
     \return Returns true if successful, otherwise false. A false result should only occur if the property
             name is empty or if the property is read-only.
     """
-    result = libovr.ovr_SetBool(session, propertyName, value)
+    result = libovr.ovr_SetBool(session, propertyName, toOvrBool(value))
     return result
 
 
@@ -2593,7 +2593,7 @@ def getEyePoses(session, frameIndex, latencyMarker, hmdToEyeViewOffset, outEyePo
     \param[out] outHmdTrackingState The predicted ovrTrackingState. May be NULL, in which case it is ignored.
     """
     outHmdTrackingState = TrackingState()
-    result = libovr.ovr_GetEyePoses(session, frameIndex, latencyMarker, hmdToEyeViewOffset, outEyePoses, byref(outHmdTrackingState))
+    result = libovr.ovr_GetEyePoses(session, frameIndex, toOvrBool(latencyMarker), hmdToEyeViewOffset, outEyePoses, byref(outHmdTrackingState))
     return outHmdTrackingState
 
 
