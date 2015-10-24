@@ -37,6 +37,8 @@ ovr.shutdown()
 
 Look in the "examples" folder for more example code.
 
+See the Oculus developer documentation for more details. https://developer.oculus.com/documentation/pcsdk/latest/concepts/book-dg/ NOTE you will need to mentally translate the example code from C++ to python.
+
 ## Details
 Runs on Windows only at the moment, but so does OVR SDK 0.8.0
 
