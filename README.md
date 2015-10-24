@@ -20,18 +20,18 @@ import time
 import ovr
 
 ovr.initialize(None)
-hmd, luid = ovr.create()
-hmdDesc = ovr.getHmdDesc(hmd)
+session, luid = ovr.create()
+hmdDesc = ovr.getHmdDesc(session)
 print hmdDesc.ProductName
 for t in range(100):
     # Query the HMD for the current tracking state.
-    ts  = ovr.getTrackingState(hmd, ovr.getTimeInSeconds(), True)
+    ts  = ovr.getTrackingState(session, ovr.getTimeInSeconds(), True)
     if ts.StatusFlags & (ovr.Status_OrientationTracked | ovr.Status_PositionTracked):
         pose = ts.HeadPose
         print pose.ThePose
         sys.stdout.flush()
     time.sleep(0.200)
-ovr.destroy(hmd)
+ovr.destroy(session)
 ovr.shutdown()
 ```
 
