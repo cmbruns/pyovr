@@ -37,7 +37,9 @@ ovr.shutdown()
 
 Look in the "examples" folder for more example code.
 
-See the Oculus developer documentation for more details. https://developer.oculus.com/documentation/pcsdk/latest/concepts/book-dg/ NOTE you will need to mentally translate the example code from C++ to python.
+See the Oculus developer documentation for more details about the OVR C API. https://developer.oculus.com/documentation/pcsdk/latest/concepts/book-dg/
+
+For more information about how this Python API compares to the official C API, see our wiki at https://github.com/cmbruns/pyovr/wiki/Migrating-from-OVR-C-API-to-Python
 
 ## Details
 Runs on Windows only at the moment, but so does OVR SDK 0.8.0
