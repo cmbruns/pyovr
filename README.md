@@ -25,7 +25,7 @@ hmdDesc = ovr.getHmdDesc(hmd)
 print hmdDesc.ProductName
 while True:
     # Query the HMD for the current tracking state.
-    ts  = ovr.getTrackingState(hmd, ovr.getTimeInSeconds(), ovr.ovrTrue)
+    ts  = ovr.getTrackingState(hmd, ovr.getTimeInSeconds(), True)
     if ts.StatusFlags & (ovr.Status_OrientationTracked | ovr.Status_PositionTracked):
         pose = ts.HeadPose
         print pose.ThePose
@@ -38,7 +38,7 @@ ovr.shutdown()
 Look in the "examples" folder for more example code.
 
 ## Details
-Runs on Windows only at the moment, but so does OVR SDK 0.7.0
+Runs on Windows only at the moment, but so does OVR SDK 0.8.0
 
 This python module uses the installed 32-bit OVR dll on Windows, so you must have the Oculus 0.8 Runtime installed to use this module. Get the Oculus Runtime at https://developer.oculus.com/downloads/pc/0.8.0.0-beta/Oculus_Runtime_for_Windows/
 
