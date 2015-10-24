@@ -23,7 +23,7 @@ ovr.initialize(None)
 hmd, luid = ovr.create()
 hmdDesc = ovr.getHmdDesc(hmd)
 print hmdDesc.ProductName
-while True:
+for t in range(100):
     # Query the HMD for the current tracking state.
     ts  = ovr.getTrackingState(hmd, ovr.getTimeInSeconds(), True)
     if ts.StatusFlags & (ovr.Status_OrientationTracked | ovr.Status_PositionTracked):
