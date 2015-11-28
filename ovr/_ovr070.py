@@ -1830,7 +1830,7 @@ def submitFrame(hmd, frameIndex, viewScaleDesc, layerPtrList, layerCount):
     
     \see ovr_GetFrameTiming, ovrViewScaleDesc, ovrLayerHeader
     """
-    layerPtrList = POINTER(LayerHeader)(layerPtrList)
+    layerPtrList = (POINTER(LayerHeader) * len(layerPtrList))(*[ctypes.pointer(i) for i in layerPtrList])
     result = libovr.ovr_SubmitFrame(hmd, frameIndex, byref(viewScaleDesc), byref(layerPtrList), layerCount)
     if FAILURE(result):
         raise Exception("Call to function submitFrame failed")    

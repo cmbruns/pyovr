@@ -137,7 +137,7 @@ class RiftApp():
     self.layer.ColorTexture[1]  = self.framebuffer.pTextureSet # single texture for both eyes
 
   def submit_frame(self): 
-    layers = self.layer.Header
+    layers = [self.layer.Header]
     for eye in range(0, 2):
       self.layer.RenderPose[eye] = self.poses[eye]
     self.rift.submit_frame(self.frame, self.viewScale, layers, 1)

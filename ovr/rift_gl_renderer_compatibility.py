@@ -99,7 +99,7 @@ class RiftGLRendererCompatibility(list):
 
     def submit_frame(self):
         # 2c) Call ovr_SubmitFrame, passing swap texture set(s) from the previous step within a ovrLayerEyeFov structure. Although a single layer is required to submit a frame, you can use multiple layers and layer types for advanced rendering. ovr_SubmitFrame passes layer textures to the compositor which handles distortion, timewarp, and GPU synchronization before presenting it to the headset. 
-        layers = self.layer.Header
+        layers = [self.layer.Header]
         viewScale = ovr.ViewScaleDesc()
         viewScale.HmdSpaceToWorldScaleInMeters = 1.0
         viewScale.HmdToEyeViewOffset[0] = self.hmdToEyeViewOffset[0]

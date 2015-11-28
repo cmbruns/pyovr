@@ -467,7 +467,7 @@ sub process_functions {
             # print $arg, "\n";
             my $pointee_type = $1;
             # print $pointee_type, "\n";
-            $trans .= "    $arg = $pointee_type($arg)\n";
+            $trans .= "    $arg = ($pointee_type * len($arg))(*[ctypes.pointer(i) for i in $arg])\n";
         }        
 
         # Declare local variables for output arguments
