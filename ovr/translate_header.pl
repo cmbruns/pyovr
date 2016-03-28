@@ -5,7 +5,8 @@ use strict;
 use File::Basename;
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
+my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_1.3/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Program Files/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 
@@ -14,7 +15,7 @@ my @header_files = (
     "OVR_Version.h",
     "OVR_CAPI_Keys.h",
     "OVR_ErrorCode.h",
-    "OVR_CAPI_0_8_0.h",
+    "OVR_CAPI.h",
     "OVR_CAPI_GL.h",
     "Extras/OVR_CAPI_Util.h",
 );
@@ -364,7 +365,7 @@ sub process_functions {
             \(
             ([^\)]*) # argument list
             \)
-            ;\n
+            ;\s*\n
             /gx) 
     {
         my $comment = $1;
@@ -529,7 +530,7 @@ EOF
         $count2 += 1;
     }
 
-    # print "$count1 ($count2) functions found\n";
+    print "$count1 ($count2) functions found\n";
     die unless $count1 == $count2;
 };
 
@@ -541,9 +542,10 @@ sub process_structs {
     my $count1 = 0;
     # skip structs without bodies
     # skip the word "struct" within a comment
-    while ($code =~ m/\n[^\/]*\b(struct|union)\b[^;]*\{/g) 
+    while ($code =~ m/\n([^\/]*\b(struct|union)\b[^;]*\{)/g) 
     {
         $count1 += 1;
+        # print $1, "\n";
     }
 
     my $count2 = 0;
@@ -555,7 +557,7 @@ sub process_structs {
         \b(struct|union)\b
         (?:\s+OVR_ALIGNAS\(([^)]+)\))? # optional memory alignment
         \s+
-        \S+ # structed class name
+        \S* # structed class name
         \s*
         \{
         ([^\}]*)
@@ -572,6 +574,8 @@ sub process_structs {
         my $body = $4;
         my $class_name = $5;
         my $p = pos($code) - length($&);
+
+        # print $class_name, "\n";
 
         $class_name = translate_type($class_name);
 
@@ -719,10 +723,13 @@ sub process_structs {
         $by_pos->{$p} = $trans;
 
         $count2 += 1;
+        # print $code, "\n";
     }
 
-    # print "$count1 ($count2) structs found\n";
-    die unless $count1 == $count2;
+    if ($count1 != $count2) {
+        print "$count1 ($count2) structs found\n";
+        die unless $count1 == $count2;
+    }
 }
 
 sub process_macros {
