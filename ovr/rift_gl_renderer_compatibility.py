@@ -58,8 +58,7 @@ class RiftGLRendererCompatibility(list):
             # Get projection matrix for the Rift camera
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            proj = ovr.matrix4f_Projection(layer.Fov[eye], 0.2, 100.0,
-                            ovr.Projection_RightHanded)
+            proj = ovr.matrix4f_Projection(layer.Fov[eye], 0.2, 100.0)
             glMultTransposeMatrixf(proj.M)
             # Get view matrix for the Rift camera
             glMatrixMode(GL_MODELVIEW)

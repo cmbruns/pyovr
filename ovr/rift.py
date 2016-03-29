@@ -16,7 +16,7 @@ class Rift():
       return ovr.getTimeInSeconds()
 
     @staticmethod
-    def get_perspective(fov, near, far, projectionFlags = ovr.Projection_RightHanded):
+    def get_perspective(fov, near, far):
       return ovr.matrix4f_Projection(fov, near, far, projectionFlags)
 
     @staticmethod

@@ -27,6 +27,7 @@ try:
     libovr = CDLL(_libname)
 except:
     print "Is Oculus Runtime 1.3 installed on this machine?"
+    print _libname
     raise
 
 
@@ -1441,6 +1442,7 @@ def create():
     pLuid = GraphicsLuid()
     result = libovr.ovr_Create(byref(pSession), byref(pLuid))
     if FAILURE(result):
+        print "result =", result
         raise Exception("Call to function create failed")    
     return pSession, pLuid
 
