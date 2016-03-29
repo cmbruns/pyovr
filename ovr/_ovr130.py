@@ -1,6 +1,6 @@
 """
 Python module "ovr"
-Python bindings for Oculus Rift SDK version 0.8.0
+Python bindings for Oculus Rift SDK version 1.3.0
 
 Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
@@ -17,16 +17,16 @@ OVR_PTR_SIZE = sizeof(c_voidp) # distinguish 32 vs 64 bit python
 
 # Load Oculus runtime library (only tested on Windows)
 # 1) Figure out name of library to load
-_libname = "OVRRT32_0_8" # 32-bit python
+_libname = "OVRRT32_1" # 32-bit python
 if OVR_PTR_SIZE == 8:
-    _libname = "OVRRT64_0_8" # 64-bit python
+    _libname = "OVRRT64_1" # 64-bit python
 if platform.system().startswith("Win"):
-    _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_8"
+    _libname = "Lib"+_libname # i.e. "LibOVRRT32_1_3"
 # Load library
 try:
     libovr = CDLL(_libname)
 except:
-    print "Is Oculus Runtime 0.8 installed on this machine?"
+    print "Is Oculus Runtime 1.3 installed on this machine?"
     raise
 
 
@@ -1017,6 +1017,11 @@ class MirrorTextureDesc(Structure):
     def __repr__(self):
         return "ovr.MirrorTextureDesc(%s, %s, %s, %s)" % (self.Format, self.Width, self.Height, self.MiscFlags)
 
+class TextureSwapChainData(Structure):
+    pass
+
+class MirrorTextureData(Structure):
+    pass
 
 # Translated from header file OVR_CAPI.h line 724
 TextureSwapChain = POINTER(TextureSwapChainData) 
@@ -1038,13 +1043,13 @@ Button_B         = 0x00000002
 Button_RThumb    = 0x00000004
 Button_RShoulder = 0x00000008
 # Bit mask of all buttons on the right Touch controller
-Button_RMask     = Button_A | ovrButton_B | ovrButton_RThumb | ovrButton_RShoulder,
+Button_RMask     = Button_A | Button_B | Button_RThumb | Button_RShoulder,
 Button_X         = 0x00000100
 Button_Y         = 0x00000200
 Button_LThumb    = 0x00000400  
 Button_LShoulder = 0x00000800
 # Bit mask of all buttons on the left Touch controller
-Button_LMask     = Button_X | ovrButton_Y | ovrButton_LThumb | ovrButton_LShoulder,
+Button_LMask     = Button_X | Button_Y | Button_LThumb | Button_LShoulder,
 # Navigation through DPad.
 Button_Up        = 0x00010000
 Button_Down      = 0x00020000
@@ -1055,7 +1060,7 @@ Button_Back      = 0x00200000 # Back on Xbox controller.
 Button_VolUp     = 0x00400000  # only supported by Remote.
 Button_VolDown   = 0x00800000  # only supported by Remote.
 Button_Home      = 0x01000000  
-Button_Private   = Button_VolUp | ovrButton_VolDown | ovrButton_Home,
+Button_Private   = Button_VolUp | Button_VolDown | Button_Home,
 
 
 # Translated from header file OVR_CAPI.h line 768
@@ -1068,23 +1073,23 @@ Touch_B              = Button_B
 Touch_RThumb         = Button_RThumb
 Touch_RIndexTrigger  = 0x00000010
 # Bit mask of all the button touches on the right controller
-Touch_RButtonMask    = Touch_A | ovrTouch_B | ovrTouch_RThumb | ovrTouch_RIndexTrigger,
+Touch_RButtonMask    = Touch_A | Touch_B | Touch_RThumb | Touch_RIndexTrigger,
 Touch_X              = Button_X
 Touch_Y              = Button_Y
 Touch_LThumb         = Button_LThumb
 Touch_LIndexTrigger  = 0x00001000
 # Bit mask of all the button touches on the left controller
-Touch_LButtonMask    = Touch_X | ovrTouch_Y | ovrTouch_LThumb | ovrTouch_LIndexTrigger,
+Touch_LButtonMask    = Touch_X | Touch_Y | Touch_LThumb | Touch_LIndexTrigger,
 # Finger pose state 
 # Derived internally based on distance, proximity to sensors and filtering.
 Touch_RIndexPointing = 0x00000020
 Touch_RThumbUp       = 0x00000040
 # Bit mask of all right controller poses
-Touch_RPoseMask      = Touch_RIndexPointing | ovrTouch_RThumbUp,
+Touch_RPoseMask      = Touch_RIndexPointing | Touch_RThumbUp,
 Touch_LIndexPointing = 0x00002000
 Touch_LThumbUp       = 0x00004000
 # Bit mask of all left controller poses
-Touch_LPoseMask      = Touch_LIndexPointing | ovrTouch_LThumbUp,
+Touch_LPoseMask      = Touch_LIndexPointing | Touch_LThumbUp,
 
 
 # Translated from header file OVR_CAPI.h line 806
