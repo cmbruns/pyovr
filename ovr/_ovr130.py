@@ -912,7 +912,7 @@ class ViewScaleDesc(Structure):
 # \see ovrTextureSwapChainDesc
 #
 TextureType = ENUM_TYPE
-Texture_2D =  + 1              #< 2D textures.
+Texture_2D =  0              #< 2D textures.
 Texture_2D_External = Texture_2D + 1     #< External 2D texture. Not used on PC
 Texture_Cube = Texture_2D_External + 1            #< Cube maps. Not currently supported on PC.
 Texture_Count = Texture_Cube + 1 
@@ -927,7 +927,7 @@ Texture_Count = Texture_Cube + 1
 # \see ovrTextureSwapChainDesc
 #
 TextureBindFlags = ENUM_TYPE
-TextureBind_None =  + 1 
+TextureBind_None = 0 
 TextureBind_DX_RenderTarget = 0x0001    #< The application can write into the chain with pixel shader
 TextureBind_DX_UnorderedAccess = 0x0002 #< The application can write to the chain with compute shader
 TextureBind_DX_DepthStencil = 0x0004    #< The chain buffers can be bound as depth and/or stencil buffers
@@ -939,7 +939,7 @@ TextureBind_DX_DepthStencil = 0x0004    #< The chain buffers can be bound as dep
 # \see ovrTextureSwapChainDesc
 #
 TextureFormat = ENUM_TYPE
-OVR_FORMAT_UNKNOWN =  + 1 
+OVR_FORMAT_UNKNOWN = 0 
 OVR_FORMAT_B5G6R5_UNORM = OVR_FORMAT_UNKNOWN + 1    #< Not currently supported on PC. Would require a DirectX 11.1 device.
 OVR_FORMAT_B5G5R5A1_UNORM = OVR_FORMAT_B5G6R5_UNORM + 1  #< Not currently supported on PC. Would require a DirectX 11.1 device.
 OVR_FORMAT_B4G4R4A4_UNORM = OVR_FORMAT_B5G5R5A1_UNORM + 1  #< Not currently supported on PC. Would require a DirectX 11.1 device.
@@ -964,7 +964,7 @@ OVR_FORMAT_ENUMSIZE = 0x7fffffff  #< \internal Force type int32_t.
 # \see ovrTextureSwapChainDesc
 #
 TextureFlags = ENUM_TYPE
-TextureMisc_None =  + 1 
+TextureMisc_None = 0 
 # DX only: The underlying texture is created with a TYPELESS equivalent of the
 # format specified in the texture desc. The SDK will still access the
 # texture using the format specified in the texture desc, but the app can
@@ -2478,6 +2478,8 @@ def createTextureSwapChainGL(session, desc):
     result = libovr.ovr_CreateTextureSwapChainGL(session, byref(desc), byref(out_TextureSwapChain))
     if FAILURE(result):
         print result
+        errorInfo = getLastErrorInfo()
+        print errorInfo.ErrorString
         raise Exception("Call to function createTextureSwapChainGL failed")    
     return out_TextureSwapChain
 

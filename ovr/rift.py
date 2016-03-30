@@ -62,8 +62,8 @@ class Rift():
       textureSwapChainDesc.StaticImage = ovr.ovrFalse
       textureSwapChainDesc.MiscFlags = ctypes.c_uint(0)
       textureSwapChainDesc.BindFlags = ctypes.c_uint(0)
-      print self.session
-      print textureSwapChainDesc
+      # print self.session
+      # print textureSwapChainDesc
       result = ovr.createTextureSwapChainGL(self.session, textureSwapChainDesc)
       return result
 
