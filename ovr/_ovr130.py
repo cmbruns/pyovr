@@ -2477,6 +2477,7 @@ def createTextureSwapChainGL(session, desc):
     out_TextureSwapChain = TextureSwapChain()
     result = libovr.ovr_CreateTextureSwapChainGL(session, byref(desc), byref(out_TextureSwapChain))
     if FAILURE(result):
+        print result
         raise Exception("Call to function createTextureSwapChainGL failed")    
     return out_TextureSwapChain
 

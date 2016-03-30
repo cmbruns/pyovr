@@ -20,7 +20,7 @@ class RiftGLRendererCompatibility(list):
         self.width = 100
         self.height = 100
         self.frame_index = 0
-        self.pTextureSet = None
+        self.textureSwapChain = None
         self.rift = Rift()
         Rift.initialize()
         self.rift.init() # TODO: Yuck initialize() init()
@@ -79,8 +79,8 @@ class RiftGLRendererCompatibility(list):
     def dispose_gl(self):
         for actor in self:
             actor.dispose_gl()
-        if self.pTextureSet is not None:
-            self.rift.destroy_swap_texture(self.pTextureSet)       
+        if self.textureSwapChain is not None:
+            self.rift.destroy_swap_texture(self.textureSwapChain)       
 
     def init_gl(self):
         glClearColor(0, 0, 1, 0)
@@ -101,8 +101,9 @@ class RiftGLRendererCompatibility(list):
         layers = [self.layer.Header]
         viewScale = ovr.ViewScaleDesc()
         viewScale.HmdSpaceToWorldScaleInMeters = 1.0
-        viewScale.HmdToEyeViewOffset[0] = self.hmdToEyeViewOffset[0]
-        viewScale.HmdToEyeViewOffset[1] = self.hmdToEyeViewOffset[1]
+        viewScale.HmdToEyeOffset[0] = self.hmdToEyeOffset[0]
+        viewScale.HmdToEyeOffset[1] = self.hmdToEyeOffset[1]
+        ovr.commitTextureSwapChain(self.rift.session, self.textureSwapChain)
         result = self.rift.submit_frame(self.frame_index, viewScale, layers, 1)
         self.frame_index += 1
 
@@ -124,22 +125,22 @@ class RiftGLRendererCompatibility(list):
         # print "Recommended buffer size = ", bufferSize, bufferSize.w, bufferSize.h
         # NOTE: We need to have set up OpenGL context before this point...
         # 1c) Allocate SwapTextureSets
-        self.pTextureSet = self.rift.create_swap_texture(bufferSize)
+        self.textureSwapChain = self.rift.create_swap_texture(bufferSize)
         # Initialize VR structures, filling out description.
         # 1ba) Compute FOV
         eyeRenderDesc = (ovr.EyeRenderDesc * 2)()
-        hmdToEyeViewOffset = (ovr.Vector3f * 2)()
+        hmdToEyeOffset = (ovr.Vector3f * 2)()
         eyeRenderDesc[0] = self.rift.get_render_desc(ovr.Eye_Left, hmdDesc.DefaultEyeFov[0])
         eyeRenderDesc[1] = self.rift.get_render_desc(ovr.Eye_Right, hmdDesc.DefaultEyeFov[1])
-        hmdToEyeViewOffset[0] = eyeRenderDesc[0].HmdToEyeViewOffset
-        hmdToEyeViewOffset[1] = eyeRenderDesc[1].HmdToEyeViewOffset
-        self.hmdToEyeViewOffset = hmdToEyeViewOffset
+        hmdToEyeOffset[0] = eyeRenderDesc[0].HmdToEyeOffset
+        hmdToEyeOffset[1] = eyeRenderDesc[1].HmdToEyeOffset
+        self.hmdToEyeOffset = hmdToEyeOffset
         # Initialize our single full screen Fov layer.
         layer = ovr.LayerEyeFov()
         layer.Header.Type      = ovr.LayerType_EyeFov
         layer.Header.Flags     = ovr.LayerFlag_TextureOriginAtBottomLeft # OpenGL convention
-        layer.ColorTexture[0]  = self.pTextureSet # single texture for both eyes
-        layer.ColorTexture[1]  = self.pTextureSet # single texture for both eyes
+        layer.ColorTexture[0]  = self.textureSwapChain # single texture for both eyes
+        layer.ColorTexture[1]  = self.textureSwapChain # single texture for both eyes
         layer.Fov[0]           = eyeRenderDesc[0].Fov
         layer.Fov[1]           = eyeRenderDesc[1].Fov
         layer.Viewport[0]      = ovr.Recti(ovr.Vector2i(0, 0),                ovr.Sizei(bufferSize.w / 2, bufferSize.h))
@@ -167,11 +168,11 @@ class RiftGLRendererCompatibility(list):
         hmdState = self.rift.get_tracking_state(displayMidpointSeconds, True)
         # print hmdState.HeadPose.ThePose
         self.rift.calc_eye_poses(hmdState.HeadPose.ThePose, 
-                self.hmdToEyeViewOffset, self.layer.RenderPose)
+                self.hmdToEyeOffset, self.layer.RenderPose)
         # Increment to use next texture, just before writing
         # 2d) Advance CurrentIndex within each used texture set to target the next consecutive texture buffer for the following frame.
-        tsc = self.pTextureSet.contents
-        tsc.CurrentIndex = (tsc.CurrentIndex + 1) % tsc.TextureCount
-        texture = ctypes.cast(ctypes.addressof(tsc.Textures[tsc.CurrentIndex]), ctypes.POINTER(ovr.GLTexture)).contents
-        return self.layer, texture.OGL.TexId
+        textureId =  ovr.getTextureSwapChainBufferGL(self.rift.session, self.textureSwapChain, -1)
+        # TODO: mirror texture
+        # mirrorTextureId = ovr.getMirrorTextureBufferGL(self.rift.session, self.mirrorTexture)
+        return self.layer, textureId
 

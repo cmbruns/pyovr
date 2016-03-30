@@ -1,5 +1,8 @@
-import ovr
+import ctypes
+
 from OpenGL.GL import GL_RGBA8
+
+import ovr
 
 class Rift():
 
@@ -16,7 +19,7 @@ class Rift():
       return ovr.getTimeInSeconds()
 
     @staticmethod
-    def get_perspective(fov, near, far):
+    def get_perspective(fov, near, far, projectionFlags=ovr.Projection_None):
       return ovr.matrix4f_Projection(fov, near, far, projectionFlags)
 
     @staticmethod
@@ -28,7 +31,7 @@ class Rift():
       ovr.shutdown()
 
     def __init__(self):
-      self.hmd = None
+      self.session = None
       self.luid = None
       self.hmdDesc = None
 
@@ -45,57 +48,71 @@ class Rift():
                               ovr.TrackingCap_MagYawCorrection |
                               ovr.TrackingCap_Position, 
                            required_caps = 0):
-      return ovr.configureTracking(self.hmd, supported_caps, required_caps)
+      return ovr.configureTracking(self.session, supported_caps, required_caps)
 
-    def create_swap_texture(self, size, format_ = GL_RGBA8):
-      return ovr.createSwapTextureSetGL(self.hmd, format_, size.w, size.h)
+    def create_swap_texture(self, size, format_ = ovr.OVR_FORMAT_R8G8B8A8_UNORM_SRGB):
+      textureSwapChainDesc = ovr.TextureSwapChainDesc()
+      textureSwapChainDesc.Type = ovr.Texture_2D
+      textureSwapChainDesc.ArraySize = ctypes.c_int(1)
+      textureSwapChainDesc.Format = format_
+      textureSwapChainDesc.Width = size.w
+      textureSwapChainDesc.Height = size.h
+      textureSwapChainDesc.MipLevels = ctypes.c_int(1)
+      textureSwapChainDesc.SampleCount = ctypes.c_int(1)
+      textureSwapChainDesc.StaticImage = ovr.ovrFalse
+      textureSwapChainDesc.MiscFlags = ctypes.c_uint(0)
+      textureSwapChainDesc.BindFlags = ctypes.c_uint(0)
+      print self.session
+      print textureSwapChainDesc
+      result = ovr.createTextureSwapChainGL(self.session, textureSwapChainDesc)
+      return result
 
     def destroy(self):
-      if self.hmd is not None:
-        ovr.destroy(self.hmd)
-      self.hmd = None
+      if self.session is not None:
+        ovr.destroy(self.session)
+      self.session = None
       self.luid = None
       self.hmdDesc = None
-      self.hmd = None
+      self.session = None
 
     def destroy_swap_texture(self, textureSet):
-      return ovr.destroySwapTextureSet(self.hmd, textureSet)
+      return ovr.destroySwapTextureSet(self.session, textureSet)
 
     def get_fov_texture_size(self, eye, fov_port, pixels_per_display_pixel=1.0):
-      return ovr.getFovTextureSize(self.hmd, eye, fov_port, pixels_per_display_pixel);
+      return ovr.getFovTextureSize(self.session, eye, fov_port, pixels_per_display_pixel);
 
     def get_eye_poses(self, frame_index, latencyMarker, eyeOffsets, trackingState=0):
       in_arr = (ovr.Vector3f * 2)(*eyeOffsets)
       out_arr = (ovr.Posef * 2)()
-      ovr.getEyePoses(self.hmd, frame_index, latencyMarker, in_arr, out_arr)
+      ovr.getEyePoses(self.session, frame_index, latencyMarker, in_arr, out_arr)
       return out_arr;
 
     def get_float(self, name, default):
-      return ovr.getFloat(self.hmd, name, default)
+      return ovr.getFloat(self.session, name, default)
 
     def get_predicted_display_time(self, frameIndex):
-      return ovr.getPredictedDisplayTime(self.hmd, frameIndex)
+      return ovr.getPredictedDisplayTime(self.session, frameIndex)
 
     def get_string(self, name, default):
-      return ovr.getString(self.hmd, name, default)
+      return ovr.getString(self.session, name, default)
 
     def get_render_desc(self, eye, fov):
-      return ovr.getRenderDesc(self.hmd, eye, fov)
+      return ovr.getRenderDesc(self.session, eye, fov)
 
     def get_resolution(self):
       return self.hmdDesc.Resolution
 
     def get_tracking_state(self, absTime=0, latencyMarker=True):
-      return ovr.getTrackingState(self.hmd, absTime, latencyMarker)
+      return ovr.getTrackingState(self.session, absTime, latencyMarker)
 
     def init(self):
-      self.hmd, self.luid = ovr.create()
-      self.hmdDesc = ovr.getHmdDesc(self.hmd)
+      self.session, self.luid = ovr.create()
+      self.hmdDesc = ovr.getHmdDesc(self.session)
 
     def submit_frame(self, frameIndex, viewScaleDesc, layerPtrList, layerCount):
-      return ovr.submitFrame(self.hmd, frameIndex, viewScaleDesc, layerPtrList, layerCount)
+      return ovr.submitFrame(self.session, frameIndex, viewScaleDesc, layerPtrList, layerCount)
 
     def recenter_pose(self):
-      return ovr.recenterPose(self.hmd)
+      return ovr.recenterTrackingOrigin(self.session)
 
 
