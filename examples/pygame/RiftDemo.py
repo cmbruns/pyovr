@@ -72,7 +72,7 @@ void main() {
 
 
 class ColorCube():
-  def __init__(self, size = ovr.DEFAULT_IPD):
+  def __init__(self, size = 0.6):
     self.size = size
     self.vertexShader = shaders.compileShader(VERTEX_SOURCE, GL_VERTEX_SHADER)
     self.fragmentShader = shaders.compileShader(FRAGMENT_SOURCE, GL_FRAGMENT_SHADER)
@@ -109,7 +109,7 @@ def ovrPoseToMat4(pose):
 class RiftDemo(RiftApp):
   def __init__(self):
     RiftApp.__init__(self)
-    self.cube_size = self.rift.get_float(ovr.KEY_IPD, ovr.DEFAULT_IPD)
+    self.cube_size = 0.6
     self.reset_camera()
     
   def reset_camera(self):

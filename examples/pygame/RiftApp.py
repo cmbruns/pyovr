@@ -41,9 +41,9 @@ class RiftSwapFramebuffer():
       self.rift.destroy_swap_texture(self.pTextureSet)
   
   def attachCurrentTexture(self, target = GL_DRAW_FRAMEBUFFER):
-    texture = self.__getCurrentGLTexture()
+    textureId =  ovr.getTextureSwapChainBufferGL(self.rift.session, self.pTextureSet, -1)
     # We switch textures every frame, so we need to bind the new texture here
-    glFramebufferTexture2D(target, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.OGL.TexId, 0)
+    glFramebufferTexture2D(target, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0)
 
     # FIXME? validating every frame may be excessive
     fboStatus = glCheckFramebufferStatus(target)
@@ -84,10 +84,10 @@ class RiftApp():
     for eye in range(0, 2):
       self.fovPorts[eye] = self.rift.hmdDesc.DefaultEyeFov[eye]
       self.eyeRenderDescs[eye] = self.rift.get_render_desc(eye, self.fovPorts[eye]);
-      self.eyeOffsets[eye] = self.eyeRenderDescs[eye].HmdToEyeViewOffset
+      self.eyeOffsets[eye] = self.eyeRenderDescs[eye].HmdToEyeOffset
       self.projections[eye] = Rift.get_perspective(self.fovPorts[eye], 0.01, 1000)
       self.textureSizes[eye] = self.rift.get_fov_texture_size(eye, self.fovPorts[eye])
-      self.viewScale.HmdToEyeViewOffset[eye] = self.eyeOffsets[eye]
+      self.viewScale.HmdToEyeOffset[eye] = self.eyeOffsets[eye]
 
     self.bufferSize.w  = self.textureSizes[0].w + self.textureSizes[1].w
     self.bufferSize.h = max ( self.textureSizes[0].h, self.textureSizes[1].h )
@@ -105,8 +105,6 @@ class RiftApp():
     viewportPos = ovr.Vector2i(self.bufferSize.w / 2, 0)
     layer.Viewport[1]      = ovr.Recti(viewportPos, viewportSize)
     self.layer = layer
-
-    self.rift.configure_tracking()
         
   def close(self):
     self.framebuffer.destroy()
