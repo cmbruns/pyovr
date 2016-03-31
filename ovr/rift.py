@@ -42,14 +42,6 @@ class Rift():
     def __exit__(self, exc_type, exc_val, exc_tb):
       self.destroy()
 
-    def configure_tracking(self,
-                           supported_caps =
-                              ovr.TrackingCap_Orientation |
-                              ovr.TrackingCap_MagYawCorrection |
-                              ovr.TrackingCap_Position, 
-                           required_caps = 0):
-      return ovr.configureTracking(self.session, supported_caps, required_caps)
-
     def create_swap_texture(self, size, format_ = ovr.OVR_FORMAT_R8G8B8A8_UNORM_SRGB):
       textureSwapChainDesc = ovr.TextureSwapChainDesc()
       textureSwapChainDesc.Type = ovr.Texture_2D

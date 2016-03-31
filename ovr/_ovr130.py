@@ -1441,9 +1441,7 @@ def create():
     pSession = Session()
     pLuid = GraphicsLuid()
     result = libovr.ovr_Create(byref(pSession), byref(pLuid))
-    if FAILURE(result):
-        print "result =", result
-        raise Exception("Call to function create failed")    
+    _checkResult(result, "create")    
     return pSession, pLuid
 
 
@@ -2476,13 +2474,16 @@ def createTextureSwapChainGL(session, desc):
     """
     out_TextureSwapChain = TextureSwapChain()
     result = libovr.ovr_CreateTextureSwapChainGL(session, byref(desc), byref(out_TextureSwapChain))
-    if FAILURE(result):
-        print result
-        errorInfo = getLastErrorInfo()
-        print errorInfo.ErrorString
-        raise Exception("Call to function createTextureSwapChainGL failed")    
+    _checkResult(result, "createTextureSwapChainGL")  
     return out_TextureSwapChain
 
+def _checkResult(ovrResult, functionName):
+    if not FAILURE(ovrResult):
+        return
+    errorInfo = getLastErrorInfo()
+    msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
+        functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
+    raise Exception(msg)
 
 # Translated from header file OVR_CAPI_GL.h line 41
 libovr.ovr_GetTextureSwapChainBufferGL.restype = Result
@@ -2778,12 +2779,6 @@ if __name__ == "__main__":
     desc = getHmdDesc(hmd)
     print desc.Resolution
     print desc.ProductName
-    # Start the sensor which provides the Rift's pose and motion.
-    configureTracking(hmd, 
-        TrackingCap_Orientation | # requested capabilities
-        TrackingCap_MagYawCorrection |
-        TrackingCap_Position, 
-        0) # required capabilities
     # Query the HMD for the current tracking state.
     ts  = getTrackingState(hmd, getTimeInSeconds())
     if ts.StatusFlags & (Status_OrientationTracked | Status_PositionTracked):
