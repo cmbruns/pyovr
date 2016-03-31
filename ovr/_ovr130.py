@@ -17,17 +17,17 @@ OVR_PTR_SIZE = sizeof(c_voidp) # distinguish 32 vs 64 bit python
 
 # Load Oculus runtime library (only tested on Windows)
 # 1) Figure out name of library to load
+
 _libname = "OVRRT32_1" # 32-bit python
 if OVR_PTR_SIZE == 8:
     _libname = "OVRRT64_1" # 64-bit python
 if platform.system().startswith("Win"):
-    _libname = "Lib"+_libname # i.e. "LibOVRRT32_1_3"
+    _libname = "Lib"+_libname # i.e. "LibOVRRT32_1"
 # Load library
 try:
     libovr = CDLL(_libname)
 except:
     print "Is Oculus Runtime 1.3 installed on this machine?"
-    print _libname
     raise
 
 
@@ -36,6 +36,12 @@ ENUM_TYPE = c_int32 # Hopefully a close enough guess...
 
 class HmdStruct(Structure):
     "Used as an opaque pointer to an OVR session."
+    pass
+
+class TextureSwapChainData(Structure):
+    pass
+
+class MirrorTextureData(Structure):
     pass
 
 
@@ -99,7 +105,6 @@ def _checkResult(ovrResult, functionName):
     msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
         functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
     raise OculusFunctionError(msg)
-
 
 ### BEGIN Declarations from C header file OVR_Version.h ###
 
@@ -929,7 +934,7 @@ class ViewScaleDesc(Structure):
 # \see ovrTextureSwapChainDesc
 #
 TextureType = ENUM_TYPE
-Texture_2D =  0              #< 2D textures.
+Texture_2D = 0              #< 2D textures.
 Texture_2D_External = Texture_2D + 1     #< External 2D texture. Not used on PC
 Texture_Cube = Texture_2D_External + 1            #< Cube maps. Not currently supported on PC.
 Texture_Count = Texture_Cube + 1 
@@ -1035,11 +1040,6 @@ class MirrorTextureDesc(Structure):
     def __repr__(self):
         return "ovr.MirrorTextureDesc(%s, %s, %s, %s)" % (self.Format, self.Width, self.Height, self.MiscFlags)
 
-class TextureSwapChainData(Structure):
-    pass
-
-class MirrorTextureData(Structure):
-    pass
 
 # Translated from header file OVR_CAPI.h line 724
 TextureSwapChain = POINTER(TextureSwapChainData) 
@@ -1273,8 +1273,7 @@ def initialize(params):
     \see ovr_Shutdown
     """
     result = libovr.ovr_Initialize(byref(params))
-    if FAILURE(result):
-        raise Exception("Call to function initialize failed")    
+    _checkResult(result, "initialize")
     return result
 
 
@@ -1458,7 +1457,7 @@ def create():
     pSession = Session()
     pLuid = GraphicsLuid()
     result = libovr.ovr_Create(byref(pSession), byref(pLuid))
-    _checkResult(result, "create")    
+    _checkResult(result, "create")
     return pSession, pLuid
 
 
@@ -1515,8 +1514,7 @@ def getSessionStatus(session):
     """
     sessionStatus = SessionStatus()
     result = libovr.ovr_GetSessionStatus(session, byref(sessionStatus))
-    if FAILURE(result):
-        raise Exception("Call to function getSessionStatus failed")    
+    _checkResult(result, "getSessionStatus")
     return sessionStatus
 
 
@@ -1539,8 +1537,7 @@ def setTrackingOriginType(session, origin):
     \see ovrTrackingOrigin, ovr_GetTrackingOriginType
     """
     result = libovr.ovr_SetTrackingOriginType(session, origin)
-    if FAILURE(result):
-        raise Exception("Call to function setTrackingOriginType failed")    
+    _checkResult(result, "setTrackingOriginType")
     return result
 
 
@@ -1591,8 +1588,7 @@ def recenterTrackingOrigin(session):
     \see ovrTrackingOrigin, ovr_GetTrackerPose
     """
     result = libovr.ovr_RecenterTrackingOrigin(session)
-    if FAILURE(result):
-        raise Exception("Call to function recenterTrackingOrigin failed")    
+    _checkResult(result, "recenterTrackingOrigin")
     return result
 
 
@@ -1671,8 +1667,7 @@ def getInputState(session, controllerType):
     """
     inputState = InputState()
     result = libovr.ovr_GetInputState(session, controllerType, byref(inputState))
-    if FAILURE(result):
-        raise Exception("Call to function getInputState failed")    
+    _checkResult(result, "getInputState")
     return inputState
 
 
@@ -1714,8 +1709,7 @@ def setControllerVibration(session, controllerType, frequency, amplitude):
     \see ovrControllerType
     """
     result = libovr.ovr_SetControllerVibration(session, controllerType, frequency, amplitude)
-    if FAILURE(result):
-        raise Exception("Call to function setControllerVibration failed")    
+    _checkResult(result, "setControllerVibration")
     return result
 
 
@@ -1942,8 +1936,7 @@ def getTextureSwapChainLength(session, chain):
     """
     out_Length = c_int()
     result = libovr.ovr_GetTextureSwapChainLength(session, chain, byref(out_Length))
-    if FAILURE(result):
-        raise Exception("Call to function getTextureSwapChainLength failed")    
+    _checkResult(result, "getTextureSwapChainLength")
     return out_Length
 
 
@@ -1964,8 +1957,7 @@ def getTextureSwapChainCurrentIndex(session, chain):
     """
     out_Index = c_int()
     result = libovr.ovr_GetTextureSwapChainCurrentIndex(session, chain, byref(out_Index))
-    if FAILURE(result):
-        raise Exception("Call to function getTextureSwapChainCurrentIndex failed")    
+    _checkResult(result, "getTextureSwapChainCurrentIndex")
     return out_Index
 
 
@@ -1986,8 +1978,7 @@ def getTextureSwapChainDesc(session, chain):
     """
     out_Desc = TextureSwapChainDesc()
     result = libovr.ovr_GetTextureSwapChainDesc(session, chain, byref(out_Desc))
-    if FAILURE(result):
-        raise Exception("Call to function getTextureSwapChainDesc failed")    
+    _checkResult(result, "getTextureSwapChainDesc")
     return out_Desc
 
 
@@ -2014,8 +2005,7 @@ def commitTextureSwapChain(session, chain):
     \see ovr_CreateTextureSwapChainDX, ovr_CreateTextureSwapChainGL
     """
     result = libovr.ovr_CommitTextureSwapChain(session, chain)
-    if FAILURE(result):
-        raise Exception("Call to function commitTextureSwapChain failed")    
+    _checkResult(result, "commitTextureSwapChain")
     return result
 
 
@@ -2490,8 +2480,9 @@ def createTextureSwapChainGL(session, desc):
     """
     out_TextureSwapChain = TextureSwapChain()
     result = libovr.ovr_CreateTextureSwapChainGL(session, byref(desc), byref(out_TextureSwapChain))
-    _checkResult(result, "createTextureSwapChainGL")  
+    _checkResult(result, "createTextureSwapChainGL")
     return out_TextureSwapChain
+
 
 # Translated from header file OVR_CAPI_GL.h line 41
 libovr.ovr_GetTextureSwapChainBufferGL.restype = Result
@@ -2511,8 +2502,7 @@ def getTextureSwapChainBufferGL(session, chain, index):
     """
     out_TexId = c_uint()
     result = libovr.ovr_GetTextureSwapChainBufferGL(session, chain, index, byref(out_TexId))
-    if FAILURE(result):
-        raise Exception("Call to function getTextureSwapChainBufferGL failed")    
+    _checkResult(result, "getTextureSwapChainBufferGL")
     return out_TexId
 
 
@@ -2545,8 +2535,7 @@ def createMirrorTextureGL(session, desc):
     """
     out_MirrorTexture = MirrorTexture()
     result = libovr.ovr_CreateMirrorTextureGL(session, byref(desc), byref(out_MirrorTexture))
-    if FAILURE(result):
-        raise Exception("Call to function createMirrorTextureGL failed")    
+    _checkResult(result, "createMirrorTextureGL")
     return out_MirrorTexture
 
 
@@ -2566,8 +2555,7 @@ def getMirrorTextureBufferGL(session, mirrorTexture):
     """
     out_TexId = c_uint()
     result = libovr.ovr_GetMirrorTextureBufferGL(session, mirrorTexture, byref(out_TexId))
-    if FAILURE(result):
-        raise Exception("Call to function getMirrorTextureBufferGL failed")    
+    _checkResult(result, "getMirrorTextureBufferGL")
     return out_TexId
 
 
