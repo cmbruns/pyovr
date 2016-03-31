@@ -171,7 +171,7 @@ class RiftGLRendererCompatibility(list):
                 self.hmdToEyeOffset, self.layer.RenderPose)
         # Increment to use next texture, just before writing
         # 2d) Advance CurrentIndex within each used texture set to target the next consecutive texture buffer for the following frame.
-        textureId =  ovr.getTextureSwapChainBufferGL(self.rift.session, self.textureSwapChain, -1)
+        textureId =  self.rift.get_current_texture_id_GL(self.textureSwapChain)
         # TODO: mirror texture
         # mirrorTextureId = ovr.getMirrorTextureBufferGL(self.rift.session, self.mirrorTexture)
         return self.layer, textureId

@@ -70,6 +70,9 @@ class Rift():
     def destroy_swap_texture(self, textureSet):
       return ovr.destroySwapTextureSet(self.session, textureSet)
 
+    def get_current_texture_id_GL(self, textureSwapChain):
+      return ovr.getTextureSwapChainBufferGL(self.session, textureSwapChain, -1)
+
     def get_fov_texture_size(self, eye, fov_port, pixels_per_display_pixel=1.0):
       return ovr.getFovTextureSize(self.session, eye, fov_port, pixels_per_display_pixel);
 
