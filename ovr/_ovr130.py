@@ -84,6 +84,23 @@ def toOvrBool(arg):
     else:
         return ovrFalse
 
+class OculusFunctionError(RuntimeError):
+    """
+    OculusFunctionError is a custom exception type for when OVR functions return a failure code.
+    Such a specific exception type allows more precise exception handling that does just raising Exception().
+    """
+    pass
+
+def _checkResult(ovrResult, functionName):
+    "Raises an exception if a function returns an error code"
+    if not FAILURE(ovrResult):
+        return # Function succeeded, so carry on
+    errorInfo = getLastErrorInfo()
+    msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
+        functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
+    raise OculusFunctionError(msg)
+
+
 ### BEGIN Declarations from C header file OVR_Version.h ###
 
 
@@ -2476,14 +2493,6 @@ def createTextureSwapChainGL(session, desc):
     result = libovr.ovr_CreateTextureSwapChainGL(session, byref(desc), byref(out_TextureSwapChain))
     _checkResult(result, "createTextureSwapChainGL")  
     return out_TextureSwapChain
-
-def _checkResult(ovrResult, functionName):
-    if not FAILURE(ovrResult):
-        return
-    errorInfo = getLastErrorInfo()
-    msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
-        functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
-    raise Exception(msg)
 
 # Translated from header file OVR_CAPI_GL.h line 41
 libovr.ovr_GetTextureSwapChainBufferGL.restype = Result
