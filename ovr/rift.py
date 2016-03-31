@@ -42,6 +42,9 @@ class Rift():
     def __exit__(self, exc_type, exc_val, exc_tb):
       self.destroy()
 
+    def commit_texture_swap_chain(self, textureSwapChain):
+      ovr.commitTextureSwapChain(self.session, textureSwapChain)
+
     def create_swap_texture(self, size, format_ = ovr.OVR_FORMAT_R8G8B8A8_UNORM_SRGB):
       textureSwapChainDesc = ovr.TextureSwapChainDesc()
       textureSwapChainDesc.Type = ovr.Texture_2D
@@ -67,8 +70,8 @@ class Rift():
       self.hmdDesc = None
       self.session = None
 
-    def destroy_swap_texture(self, textureSet):
-      return ovr.destroySwapTextureSet(self.session, textureSet)
+    def destroy_swap_texture(self, textureSwapChain):
+      return ovr.destroyTextureSwapChain(self.session, textureSwapChain)
 
     def get_current_texture_id_GL(self, textureSwapChain):
       return ovr.getTextureSwapChainBufferGL(self.session, textureSwapChain, -1)

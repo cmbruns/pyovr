@@ -2163,8 +2163,7 @@ def submitFrame(session, frameIndex, viewScaleDesc, layerPtrList, layerCount):
     """
     layerPtrList = (POINTER(LayerHeader) * len(layerPtrList))(*[ctypes.pointer(i) for i in layerPtrList])
     result = libovr.ovr_SubmitFrame(session, frameIndex, byref(viewScaleDesc), byref(layerPtrList), layerCount)
-    if FAILURE(result):
-        raise Exception("Call to function submitFrame failed")    
+    _checkResult(result, "submitFrame")
     return result
 
 

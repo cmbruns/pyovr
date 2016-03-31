@@ -12,13 +12,6 @@ class RiftSwapFramebuffer():
     self.format = format_
     self.fbo = 0
     self.build()
-
-  def __getCurrentGLTexture(self):
-    tsc = self.pTextureSet.contents
-    curTexturePointer = ctypes.addressof(tsc.Textures[tsc.CurrentIndex])
-    # Tricky casting here
-    texture = ctypes.cast(curTexturePointer, ctypes.POINTER(ovr.GLTexture)).contents
-    return texture
     
   def build(self, ):
     self.pTextureSet = self.rift.create_swap_texture(self.size)
@@ -34,6 +27,9 @@ class RiftSwapFramebuffer():
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, self.depth)
     glBindFramebuffer(GL_FRAMEBUFFER, 0)
     
+  def commit(self):
+    self.rift.commit_texture_swap_chain(self.pTextureSet)
+
   def destroy(self):
     glDeleteFramebuffers(1, [self.fbo])
     glDeleteRenderbuffers(1, [self.depth])
@@ -57,10 +53,6 @@ class RiftSwapFramebuffer():
   def unbind(self, target = GL_DRAW_FRAMEBUFFER):
     glBindFramebuffer(target, 0)
 
-  def increment(self):
-    tsc = self.pTextureSet.contents
-    tsc.CurrentIndex = (tsc.CurrentIndex + 1) % tsc.TextureCount
-  
 
 class RiftApp():
   def __init__(self):
@@ -138,6 +130,7 @@ class RiftApp():
     layers = [self.layer.Header]
     for eye in range(0, 2):
       self.layer.RenderPose[eye] = self.poses[eye]
+    self.framebuffer.commit()
     self.rift.submit_frame(self.frame, self.viewScale, layers, 1)
 
   def render_frame(self):
@@ -170,7 +163,6 @@ class RiftApp():
                         GL_COLOR_BUFFER_BIT, GL_NEAREST)
       self.framebuffer.unbind(GL_READ_FRAMEBUFFER)
     self.submit_frame()
-    self.framebuffer.increment()
 
   def update(self):
     for event in pygame.event.get():

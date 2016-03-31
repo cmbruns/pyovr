@@ -103,7 +103,7 @@ class RiftGLRendererCompatibility(list):
         viewScale.HmdSpaceToWorldScaleInMeters = 1.0
         viewScale.HmdToEyeOffset[0] = self.hmdToEyeOffset[0]
         viewScale.HmdToEyeOffset[1] = self.hmdToEyeOffset[1]
-        ovr.commitTextureSwapChain(self.rift.session, self.textureSwapChain)
+        self.rift.commit_texture_swap_chain(self.textureSwapChain)
         result = self.rift.submit_frame(self.frame_index, viewScale, layers, 1)
         self.frame_index += 1
 
