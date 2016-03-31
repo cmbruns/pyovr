@@ -4,6 +4,14 @@ use warnings;
 use strict;
 use File::Basename;
 
+# Compute OVR SDK version strings for later use
+my @sdk_version_arr = (1, 3, 0);
+my $sdk_version1 = $sdk_version_arr[0]; # one digit version, e.g. "1"
+my $sdk_version2 = join('.', $sdk_version_arr[0], $sdk_version_arr[1]); # two digit version, e.g. "1.3"
+my $sdk_version3 = join('.', @sdk_version_arr); # three digit version, e.g. "1.3.0"
+my $sdk_lib_version = $sdk_version1; # e.g. "1"
+print $sdk_version2, " ", $sdk_version3, " ", $sdk_lib_version, "\n";
+
 # 1) Edit the following line to reflect the location of the OVR include files on your system
 my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_1.3/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
@@ -122,10 +130,11 @@ translate_header();
 sub translate_header {
     open my $fh, ">", "translated.py" or die;
 
-    print $fh <<'END_PREAMBLE';
-"""
+    print $fh '"""
 Python module "ovr"
-Python bindings for Oculus Rift SDK version 0.8.0
+Python bindings for Oculus Rift SDK version ';
+    print $fh "$sdk_version3\n";
+    print $fh <<'END_PREAMBLE';
 
 Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
@@ -142,16 +151,22 @@ OVR_PTR_SIZE = sizeof(c_voidp) # distinguish 32 vs 64 bit python
 
 # Load Oculus runtime library (only tested on Windows)
 # 1) Figure out name of library to load
-_libname = "OVRRT32_0_8" # 32-bit python
+END_PREAMBLE
+    print $fh "
+_libname = \"OVRRT32_$sdk_lib_version\" # 32-bit python
 if OVR_PTR_SIZE == 8:
-    _libname = "OVRRT64_0_8" # 64-bit python
-if platform.system().startswith("Win"):
-    _libname = "Lib"+_libname # i.e. "LibOVRRT32_0_8"
+    _libname = \"OVRRT64_$sdk_lib_version\" # 64-bit python
+if platform.system().startswith(\"Win\"):
+    _libname = \"Lib\"+_libname # i.e. \"LibOVRRT32_$sdk_lib_version\"";
+    print $fh <<'END_PREAMBLE';
+
 # Load library
 try:
     libovr = CDLL(_libname)
 except:
-    print "Is Oculus Runtime 0.8 installed on this machine?"
+END_PREAMBLE
+    print $fh "    print \"Is Oculus Runtime $sdk_version2 installed on this machine?\"\n";
+    print $fh <<'END_PREAMBLE';
     raise
 
 
@@ -207,6 +222,22 @@ def toOvrBool(arg):
         return ovrTrue
     else:
         return ovrFalse
+
+class OculusFunctionError(RuntimeError):
+    """
+    OculusFunctionError is a custom exception type for when OVR functions return a failure code.
+    Such a specific exception type allows more precise exception handling that does just raising Exception().
+    """
+    pass
+
+def _checkResult(ovrResult, functionName):
+    "Raises an exception if a function returns an error code"
+    if not FAILURE(ovrResult):
+        return # Function succeeded, so carry on
+    errorInfo = getLastErrorInfo()
+    msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
+        functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
+    raise OculusFunctionError(msg)
 
 END_PREAMBLE
 
