@@ -177,6 +177,12 @@ class HmdStruct(Structure):
     "Used as an opaque pointer to an OVR session."
     pass
 
+class TextureSwapChainData(Structure):
+    pass
+
+class MirrorTextureData(Structure):
+    pass
+
 
 # Signature of the logging callback function pointer type.
 #
@@ -253,12 +259,6 @@ if __name__ == "__main__":
     desc = getHmdDesc(hmd)
     print desc.Resolution
     print desc.ProductName
-    # Start the sensor which provides the Rift's pose and motion.
-    configureTracking(hmd, 
-        TrackingCap_Orientation | # requested capabilities
-        TrackingCap_MagYawCorrection |
-        TrackingCap_Position, 
-        0) # required capabilities
     # Query the HMD for the current tracking state.
     ts  = getTrackingState(hmd, getTimeInSeconds())
     if ts.StatusFlags & (Status_OrientationTracked | Status_PositionTracked):
@@ -533,8 +533,7 @@ sub process_functions {
         if ($return_type =~ m/^Result$/) {
             # TODO: 
             $trans .= <<EOF;
-    if FAILURE(result):
-        raise Exception(\"Call to function $py_fn_name failed\")    
+    _checkResult(result, \"$py_fn_name\")
 EOF
         }
         my @return_items = ();
@@ -869,6 +868,9 @@ sub process_enums {
 
                 $id = translate_type($id);
                 $val = translate_type($val); # Might be another enum value
+
+                $rest =~ s/\| ovr/\| /g; # remove "ovr" prefix from "OR"ed definitions
+
                 $line = "$id$equals$val$rest";
 
                 $prev_val = $id;
@@ -882,7 +884,13 @@ sub process_enums {
 
                 $id = translate_type($id);
                 $val = translate_type($val); # Might be another enum value
-                $line = "$id = $prev_val + 1 $rest";
+                if ($prev_val eq "") {
+                    # except the very first implicit entry should be zero
+                    $line = "$id = 0 $rest";
+                }
+                else {
+                    $line = "$id = $prev_val + 1 $rest";
+                }
 
                 $prev_val = $id;
             }
