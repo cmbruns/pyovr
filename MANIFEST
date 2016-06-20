@@ -4,6 +4,7 @@ setup.py
 ovr\__init__.py
 ovr\_ovr070.py
 ovr\_ovr080.py
+ovr\_ovr130.py
 ovr\rift.py
 ovr\rift_gl_renderer_compatibility.py
 ovr\triangle_drawer_compatibility.py
