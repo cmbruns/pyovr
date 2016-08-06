@@ -6,9 +6,7 @@ Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
 
 import ctypes
-from ctypes import *
-import sys
-import textwrap
+from ctypes import * #@UnusedWildImport
 import math
 import platform
 
@@ -1316,7 +1314,7 @@ def getLastErrorInfo():
     \see ovrErrorInfo
     """
     errorInfo = ErrorInfo()
-    result = libovr.ovr_GetLastErrorInfo(byref(errorInfo))
+    libovr.ovr_GetLastErrorInfo(byref(errorInfo))
     return errorInfo
 
 
@@ -2738,7 +2736,7 @@ def getEyePoses(session, frameIndex, latencyMarker, HmdToEyeOffset, outEyePoses)
     \param[out] outSensorSampleTime The time when this function was called. May be NULL, in which case it is ignored.
     """
     outSensorSampleTime = c_double()
-    result = libovr.ovr_GetEyePoses(session, frameIndex, toOvrBool(latencyMarker), HmdToEyeOffset, outEyePoses, byref(outSensorSampleTime))
+    libovr.ovr_GetEyePoses(session, frameIndex, toOvrBool(latencyMarker), HmdToEyeOffset, outEyePoses, byref(outSensorSampleTime))
     return outSensorSampleTime
 
 
@@ -2759,7 +2757,7 @@ def posef_FlipHandedness(inPose):
     \param[out] outPose that is requested to be left-handed (can be the same pointer to inPose)
     """
     outPose = Posef()
-    result = libovr.ovrPosef_FlipHandedness(byref(inPose), byref(outPose))
+    libovr.ovrPosef_FlipHandedness(byref(inPose), byref(outPose))
     return outPose
 
 
