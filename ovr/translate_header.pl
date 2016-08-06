@@ -13,7 +13,7 @@ my $sdk_lib_version = $sdk_version1; # e.g. "1"
 print $sdk_version2, " ", $sdk_version3, " ", $sdk_lib_version, "\n";
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_1.3/OculusSDK/LibOVR/Include";
+my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.3.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Program Files/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
@@ -140,8 +140,7 @@ Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
 
 import ctypes
-from ctypes import *
-import sys
+from ctypes import * #@UnusedWildImport
 import textwrap
 import math
 import platform
@@ -523,8 +522,17 @@ sub process_functions {
             push @call_args, $arg;
         }
 
+        # Does the delegated function return a value?
+        my $fn_has_result = 1;
+        if ($return_type =~ m/^None$/) {
+        	$fn_has_result = 0;
+        }
+
         # Delegated function call
-        $trans .= "    result = "; # indent function call
+        $trans .= "    "; # indent function call
+        if ($fn_has_result) {
+            $trans .= "result = ";
+        }
         $trans .= "libovr.$fn_name(";
         $trans .= join ", ", @call_args;
         $trans .= ")\n";
@@ -546,7 +554,7 @@ EOF
             }
             push @return_items, @out_args;
         }
-        else {
+        elsif ($fn_has_result) {
             # Might as well return result var, if it's the only output
             push @return_items, "result";
         }
@@ -790,6 +798,7 @@ sub process_macros {
         # Remove OVR_ prefix
         $fn_name =~ s/\bOVR_//g;
         $fn_body =~ s/\bOVR_//g;
+        $fn_body =~ s/\bovrSuccess\b/Success/g;
 
         # Translate not
         $fn_body =~ s/!/not /g;

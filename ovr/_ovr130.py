@@ -249,7 +249,7 @@ def SUCCESS(result):
 
 # Translated from header file OVR_ErrorCode.h line 44
 def UNQUALIFIED_SUCCESS(result):
-    return result == ovrSuccess
+    return result == Success
 
 
 # Translated from header file OVR_ErrorCode.h line 51
