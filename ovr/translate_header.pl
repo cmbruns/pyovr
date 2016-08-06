@@ -5,7 +5,7 @@ use strict;
 use File::Basename;
 
 # Compute OVR SDK version strings for later use
-my @sdk_version_arr = (1, 3, 0);
+my @sdk_version_arr = (1, 6, 0); # CHANGE THIS TO CORRECT VERSION
 my $sdk_version1 = $sdk_version_arr[0]; # one digit version, e.g. "1"
 my $sdk_version2 = join('.', $sdk_version_arr[0], $sdk_version_arr[1]); # two digit version, e.g. "1.3"
 my $sdk_version3 = join('.', @sdk_version_arr); # three digit version, e.g. "1.3.0"
@@ -13,7 +13,8 @@ my $sdk_lib_version = $sdk_version1; # e.g. "1"
 print $sdk_version2, " ", $sdk_version3, " ", $sdk_lib_version, "\n";
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.3.0_public/OculusSDK/LibOVR/Include";
+my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.6.0_public/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.3.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Program Files/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
@@ -141,7 +142,6 @@ Works on Windows only at the moment (just like Oculus Rift SDK...)
 
 import ctypes
 from ctypes import * #@UnusedWildImport
-import textwrap
 import math
 import platform
 
@@ -438,12 +438,13 @@ sub process_functions {
                     $type = "POINTER($type)";
                 }
 
+                # Avoid warning for use of "format" as an identifier per jherico
+                $ident =~ s/^format$/format_/;
+                $ident =~ s/^buffer$/buffer_/;
+
                 if ($type =~ /^POINTER\(/) {
                     $byref_args{$ident} = 1;
                 }
-
-                # Avoid warning for use of "format" as an identifier per jherico
-                $ident =~ s/^format$/format_/;
 
                 push @arg_names, $ident;
                 push @arg_types, $type;
@@ -856,13 +857,30 @@ sub process_enums {
         # 2) Fill in contents
 
         my $prev_val = "";
+        my $partial_line = undef;
         foreach my $line (split "\n", $contents) {
             next if $line =~ m/^\s*$/; # skip blank lines
+            $line =~ s/^\s*//; # remove leading spaces
+            $line =~ s/\s*$//; # remove trailing spaces
+
+            if (defined $partial_line) {
+                print "line = #$line#\n";
+                print "partial_line = #$partial_line#\n";
+            	$line = "$partial_line $line";
+                print "Combined line = #$line#\n";
+            	$partial_line = undef;
+            }
+            
+            # Some values are continued on another line
+            if ($line =~ m!^[^,/]+\|\s*$!) { # line ends with OR operator
+                $partial_line = $line;
+                next;
+            }
+            
             $line =~ s!///!\#!; # convert comments to python style
             $line =~ s!//!\#!; # convert comments to python style
             $line =~ s!/\*!\#!; # convert comments to python style
             $line =~ s!\*/!\#!; # convert comments to python style
-            $line =~ s/^\s*//; # remove leading spaces
             # Translate individual enum entries, removing comma
             # e.g. "ovrSuccess_HMDFirmwareMismatch        = 4100,   ///< The HMD Firmware is out of date but is acceptable."
             # "    ovrDebugHudStereo_EnumSize = 0x7fffffff     ///< \internal Force type int32_t"
@@ -879,6 +897,7 @@ sub process_enums {
                 $val = translate_type($val); # Might be another enum value
 
                 $rest =~ s/\| ovr/\| /g; # remove "ovr" prefix from "OR"ed definitions
+                $rest =~ s/\,\s*$//; # remove trailing comma, if it made it this far (i.e. in OR expressions)
 
                 $line = "$id$equals$val$rest";
 
@@ -903,7 +922,7 @@ sub process_enums {
 
                 $prev_val = $id;
             }
-
+            
             $trans .= "$line\n";
         }
 
@@ -1010,6 +1029,10 @@ sub translate_type {
     # translate pointer type "ptr"
     while ($type =~ m/^([^\*]+)ptr(.*)$/) { # uintptr_t -> POINTER(c_uint)
        $type = "POINTER($1)$2";
+    }
+
+    if ($type =~ /^POINTER\(void\)$/) {
+        $type = "c_void_p";
     }
 
     if ($type =~ /^void$/) {
