@@ -295,7 +295,6 @@ sub process_header {
 
     print $out "### BEGIN Declarations from C header file $short_header_name ###\n\n\n";
 
-    # TODO:
     my $header_string = do {
         local $/ = undef;
         open my $fhh, "<", $header
@@ -564,7 +563,6 @@ END_INIT_HACK
 
         # Handle OVR specific return codes
         if ($return_type =~ m/^Result$/) {
-            # TODO: 
             $trans .= <<EOF;
     _checkResult(result, \"$py_fn_name\")
 EOF
