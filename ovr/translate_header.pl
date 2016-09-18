@@ -5,7 +5,7 @@ use strict;
 use File::Basename;
 
 # Compute OVR SDK version strings for later use
-my @sdk_version_arr = (1, 7, 0); # CHANGE THIS TO CORRECT VERSION
+my @sdk_version_arr = (1, 8, 0); # CHANGE THIS TO CORRECT VERSION
 my $sdk_version1 = $sdk_version_arr[0]; # one digit version, e.g. "1"
 my $sdk_version2 = join('.', $sdk_version_arr[0], $sdk_version_arr[1]); # two digit version, e.g. "1.3"
 my $sdk_version3 = join('.', @sdk_version_arr); # three digit version, e.g. "1.3.0"
@@ -13,7 +13,7 @@ my $sdk_lib_version = $sdk_version1; # e.g. "1"
 print $sdk_version2, " ", $sdk_version3, " ", $sdk_lib_version, "\n";
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "E:/Program Files (x86)/ovr_sdk_win_1.7.0_public/OculusSDK/LibOVR/Include";
+my $include_folder = "E:/Program Files (x86)/ovr_sdk_win_1.8.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.6.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.3.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
@@ -240,9 +240,13 @@ def _checkResult(ovrResult, functionName):
     "Raises an exception if a function returns an error code"
     if not FAILURE(ovrResult):
         return # Function succeeded, so carry on
-    errorInfo = getLastErrorInfo()
-    msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
-        functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
+    msg = "Call to function ovr.%s() failed. Error code %d." % (
+        functionName, ovrResult)
+    try:
+        errorInfo = getLastErrorInfo()
+        msg += " %s (%d)" % (errorInfo.ErrorString, errorInfo.Result)
+    except:
+        msg += " And, annoyingly, getLastErrorInfo() failed too."
     raise OculusFunctionError(msg)
 
 END_PREAMBLE
@@ -465,8 +469,14 @@ sub process_functions {
                 # All output arguments of non-array type get special treatment
                 if (! exists $types_by_arg{$arg_name}) {
                     # print "Argument not found! $fn_name : $arg_name \n";
-                    # Hard code luid => pLuid
-                    $arg_name = "p".ucfirst($arg_name);
+                    # Good news! Another Oculus screwup to hard code around from SDK 1.8!
+                    if (($fn_name eq "ovr_GetBoundaryDimensions") and ($arg_name eq "dimensions")) {
+                    	$arg_name = "outDimensions";
+                    }
+                    else {
+	                    # Hard code luid => pLuid
+	                    $arg_name = "p".ucfirst($arg_name);
+                    }
                 }
                 if ($types_by_arg{$arg_name} !~ m/ \* /) {
                     push @out_args, $arg_name;
@@ -819,6 +829,42 @@ sub process_enums {
     my $code = shift;
     my $by_pos = shift;
 
+	# Most enums in OVR SDK say "typedef enum <blah blah>"
+	# Starting in SDK 1.8, there is a
+	# "enum { ovrMaxProvidedFrameStats = 5 };"
+	# So here we process these anonymous enums
+	while ($code =~ m/
+            ((?:$comment_line_rx)*) # Previous block of comment lines
+            (?<=\n)[\ \t]* # lookbehind for start of line
+			enum\s*
+            \s*\{ # open brace
+            ([^\}]*) # TODO: contents
+            \}\s* # close brace
+			/gx) 
+	{
+		my $comment = $1;
+		my $contents = $2;
+		my $p = pos($code) - length($&);
+		
+		my $trans = "";
+		
+        $comment = translate_comment($comment);
+        if (defined $comment) {
+            $trans .= "$comment";
+        }
+
+		foreach my $expression (split ',', $contents) {
+			next if ($expression =~ m/^\s*$/);
+			die unless $expression =~ m/^\s*(\S+)\s*=\s*(\S+)\s*$/;
+			my $symbol = $1;
+			my $value = $2;
+			$symbol =~ s/^ovr//;
+			print "Weird enum: $symbol = $value\n";
+			$trans .= "$symbol = $value\n";
+		}
+	    $by_pos->{$p} = $trans;
+	}
+
     # First use a simple regex, to be sure of counting all examples
     # "typedef int32_t ovrResult;"
     my $count1 = 0;
@@ -865,10 +911,10 @@ sub process_enums {
             $line =~ s/\s*$//; # remove trailing spaces
 
             if (defined $partial_line) {
-                print "line = #$line#\n";
-                print "partial_line = #$partial_line#\n";
+                # print "line = #$line#\n";
+                # print "partial_line = #$partial_line#\n";
             	$line = "$partial_line $line";
-                print "Combined line = #$line#\n";
+                # print "Combined line = #$line#\n";
             	$partial_line = undef;
             }
             
