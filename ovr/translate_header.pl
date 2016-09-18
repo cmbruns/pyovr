@@ -511,7 +511,20 @@ sub process_functions {
             my $pointee_type = $1;
             # print $pointee_type, "\n";
             $trans .= "    $arg = ($pointee_type * len($arg))(*[ctypes.pointer(i) for i in $arg])\n";
-        }        
+        }
+        
+        # Special case for initialize method
+        if ($py_fn_name eq "initialize") {
+        	my $parammer = <<'END_INIT_HACK';
+    # Beginning with OVR SDK 1.8, we need to specify the library version here
+    if params is None:
+        params = InitParams()
+        params.Flags = Init_RequestVersion
+        params.RequestedMinorVersion = MINOR_VERSION
+        params.ConnectionTimeoutMS = 0
+END_INIT_HACK
+        	$trans .= $parammer;
+        } 
 
         # Declare local variables for output arguments
         foreach my $arg (@out_args) {

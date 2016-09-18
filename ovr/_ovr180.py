@@ -1412,6 +1412,12 @@ def initialize(params):
     
     \see ovr_Shutdown
     """
+    # Beginning with OVR SDK 1.8, we need to specify the library version here
+    if params is None:
+        params = InitParams()
+        params.Flags = Init_RequestVersion
+        params.RequestedMinorVersion = MINOR_VERSION
+        params.ConnectionTimeoutMS = 0
     result = libovr.ovr_Initialize(byref(params))
     _checkResult(result, "initialize")
     return result
