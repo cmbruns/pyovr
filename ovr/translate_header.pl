@@ -5,7 +5,7 @@ use strict;
 use File::Basename;
 
 # Compute OVR SDK version strings for later use
-my @sdk_version_arr = (1, 8, 0); # CHANGE THIS TO CORRECT VERSION
+my @sdk_version_arr = (1, 9, 0); # CHANGE THIS TO CORRECT VERSION
 my $sdk_version1 = $sdk_version_arr[0]; # one digit version, e.g. "1"
 my $sdk_version2 = join('.', $sdk_version_arr[0], $sdk_version_arr[1]); # two digit version, e.g. "1.3"
 my $sdk_version3 = join('.', @sdk_version_arr); # three digit version, e.g. "1.3.0"
@@ -13,7 +13,7 @@ my $sdk_lib_version = $sdk_version1; # e.g. "1"
 print $sdk_version2, " ", $sdk_version3, " ", $sdk_lib_version, "\n";
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "E:/Program Files (x86)/ovr_sdk_win_1.8.0_public/OculusSDK/LibOVR/Include";
+my $include_folder = "E:/Program Files (x86)/ovr_sdk_win_1.9.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.6.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.3.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
