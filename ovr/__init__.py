@@ -2,6 +2,6 @@
 from .version import __version__
 
 try:
-    from _ovr190 import *
+    from _ovr1100 import *
 except:
     raise
