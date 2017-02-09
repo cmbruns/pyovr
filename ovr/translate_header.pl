@@ -954,7 +954,11 @@ sub process_enums {
                 $id = translate_type($id);
                 $val = translate_type($val); # Might be another enum value
 
-                $rest =~ s/\| ovr/\| /g; # remove "ovr" prefix from "OR"ed definitions
+                # remove ALL the ovr prefixes within complex enum arithmetic
+                $val =~ s/\bovr//g;
+                $rest =~ s/\bovr//g;
+                # $val =~ s/^\(ovr/\(/; # remove "ovr" prefix from first among parenthesized "OR"ed definitions
+                # $rest =~ s/\| ovr/\| /g; # remove "ovr" prefix from "OR"ed definitions
                 $rest =~ s/\,\s*$//; # remove trailing comma, if it made it this far (i.e. in OR expressions)
 
                 $line = "$id$equals$val$rest";
