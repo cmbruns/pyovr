@@ -25,7 +25,7 @@ if platform.system().startswith("Win"):
 try:
     libovr = CDLL(_libname)
 except:
-    print "Is Oculus Runtime 1.7 installed on this machine?"
+    print("Is Oculus Runtime 1.7 installed on this machine?")
     raise
 
 
@@ -399,7 +399,7 @@ class Vector2i(Structure):
     def __getitem__(self, key):
         "access contained elements"
         if isinstance(key, slice):
-            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+            return [self[ii] for ii in range(*key.indices(len(self)))]
         else:
             return getattr(self, self._fields_[key][0])
 
@@ -423,7 +423,7 @@ class Sizei(Structure):
     def __getitem__(self, key):
         "access contained elements"
         if isinstance(key, slice):
-            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+            return [self[ii] for ii in range(*key.indices(len(self)))]
         else:
             return getattr(self, self._fields_[key][0])
 
@@ -465,7 +465,7 @@ class Quatf(Structure):
     def __getitem__(self, key):
         "access contained elements"
         if isinstance(key, slice):
-            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+            return [self[ii] for ii in range(*key.indices(len(self)))]
         else:
             return getattr(self, self._fields_[key][0])
 
@@ -526,7 +526,7 @@ class Vector2f(Structure):
     def __getitem__(self, key):
         "access contained elements"
         if isinstance(key, slice):
-            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+            return [self[ii] for ii in range(*key.indices(len(self)))]
         else:
             return getattr(self, self._fields_[key][0])
 
@@ -551,7 +551,7 @@ class Vector3f(Structure):
     def __getitem__(self, key):
         "access contained elements"
         if isinstance(key, slice):
-            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+            return [self[ii] for ii in range(*key.indices(len(self)))]
         else:
             return getattr(self, self._fields_[key][0])
 
@@ -2950,13 +2950,13 @@ if __name__ == "__main__":
     initialize(None)
     hmd, luid = create()
     desc = getHmdDesc(hmd)
-    print desc.Resolution
-    print desc.ProductName
+    print(desc.Resolution)
+    print(desc.ProductName)
     # Query the HMD for the current tracking state.
     ts  = getTrackingState(hmd, getTimeInSeconds())
     if ts.StatusFlags & (Status_OrientationTracked | Status_PositionTracked):
         pose = ts.HeadPose
-        print pose.ThePose
+        print(pose.ThePose)
         # TODO:
 
     destroy(hmd)
