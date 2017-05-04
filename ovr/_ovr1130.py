@@ -75,8 +75,8 @@ def byref(obj):
     b = None if obj is None else ctypes.byref(obj)
     return b
 
-ovrFalse = c_char(chr(0)) # note potential conflict with Python built in symbols
-ovrTrue = c_char(chr(1))
+ovrFalse = c_char(bytes([0])) # note potential conflict with Python built in symbols
+ovrTrue = c_char(bytes([1]))
 
 def toOvrBool(arg):
     # One tricky case:
@@ -99,13 +99,13 @@ def _checkResult(ovrResult, functionName):
     "Raises an exception if a function returns an error code"
     if not FAILURE(ovrResult):
         return # Function succeeded, so carry on
-    msg = "Call to function ovr.%s() failed. Error code %d." % (
+    msg = b"Call to function ovr.%s() failed. Error code %d." % (
         functionName, ovrResult)
     try:
         errorInfo = getLastErrorInfo()
-        msg += " %s (%d)" % (errorInfo.ErrorString, errorInfo.Result)
+        msg += b" %s (%d)" % (errorInfo.ErrorString, errorInfo.Result)
     except:
-        msg += " And, annoyingly, getLastErrorInfo() failed too."
+        msg += b" And, annoyingly, getLastErrorInfo() failed too."
     raise OculusFunctionError(msg)
 
 ### BEGIN Declarations from C header file OVR_Version.h ###
@@ -146,23 +146,23 @@ FEATURE_VERSION = 0 # "Major.Minor.Patch"
 
 
 # Translated from header file OVR_CAPI_Keys.h line 13
-KEY_USER = "User" # string
+KEY_USER = b"User" # string
 
 
 # Translated from header file OVR_CAPI_Keys.h line 15
-KEY_NAME = "Name" # string
+KEY_NAME = b"Name" # string
 
 
 # Translated from header file OVR_CAPI_Keys.h line 17
-KEY_GENDER = "Gender" # string "Male", "Female", or "Unknown"
+KEY_GENDER = b"Gender" # string "Male", "Female", or "Unknown"
 
 
 # Translated from header file OVR_CAPI_Keys.h line 18
-DEFAULT_GENDER = "Unknown" 
+DEFAULT_GENDER = b"Unknown"
 
 
 # Translated from header file OVR_CAPI_Keys.h line 20
-KEY_PLAYER_HEIGHT = "PlayerHeight" # float meters
+KEY_PLAYER_HEIGHT = b"PlayerHeight" # float meters
 
 
 # Translated from header file OVR_CAPI_Keys.h line 21
@@ -170,7 +170,7 @@ DEFAULT_PLAYER_HEIGHT = 1.778
 
 
 # Translated from header file OVR_CAPI_Keys.h line 23
-KEY_EYE_HEIGHT = "EyeHeight" # float meters
+KEY_EYE_HEIGHT = b"EyeHeight" # float meters
 
 
 # Translated from header file OVR_CAPI_Keys.h line 24
@@ -178,7 +178,7 @@ DEFAULT_EYE_HEIGHT = 1.675
 
 
 # Translated from header file OVR_CAPI_Keys.h line 26
-KEY_NECK_TO_EYE_DISTANCE = "NeckEyeDistance" # float[2] meters
+KEY_NECK_TO_EYE_DISTANCE = b"NeckEyeDistance" # float[2] meters
 
 
 # Translated from header file OVR_CAPI_Keys.h line 27
@@ -190,47 +190,47 @@ DEFAULT_NECK_TO_EYE_VERTICAL = 0.075
 
 
 # Translated from header file OVR_CAPI_Keys.h line 31
-KEY_EYE_TO_NOSE_DISTANCE = "EyeToNoseDist" # float[2] meters
+KEY_EYE_TO_NOSE_DISTANCE = b"EyeToNoseDist" # float[2] meters
 
 
 # Translated from header file OVR_CAPI_Keys.h line 37
-PERF_HUD_MODE = "PerfHudMode" # int, allowed values are defined in enum ovrPerfHudMode
+PERF_HUD_MODE = b"PerfHudMode" # int, allowed values are defined in enum ovrPerfHudMode
 
 
 # Translated from header file OVR_CAPI_Keys.h line 39
-LAYER_HUD_MODE = "LayerHudMode" # int, allowed values are defined in enum ovrLayerHudMode
+LAYER_HUD_MODE = b"LayerHudMode" # int, allowed values are defined in enum ovrLayerHudMode
 
 
 # Translated from header file OVR_CAPI_Keys.h line 40
-LAYER_HUD_CURRENT_LAYER = "LayerHudCurrentLayer" # int, The layer to show 
+LAYER_HUD_CURRENT_LAYER = b"LayerHudCurrentLayer" # int, The layer to show
 
 
 # Translated from header file OVR_CAPI_Keys.h line 41
-LAYER_HUD_SHOW_ALL_LAYERS = "LayerHudShowAll" # bool, Hide other layers when the hud is enabled
+LAYER_HUD_SHOW_ALL_LAYERS = b"LayerHudShowAll" # bool, Hide other layers when the hud is enabled
 
 
 # Translated from header file OVR_CAPI_Keys.h line 43
-DEBUG_HUD_STEREO_MODE = "DebugHudStereoMode" # int, allowed values are defined in enum ovrDebugHudStereoMode
+DEBUG_HUD_STEREO_MODE = b"DebugHudStereoMode" # int, allowed values are defined in enum ovrDebugHudStereoMode
 
 
 # Translated from header file OVR_CAPI_Keys.h line 44
-DEBUG_HUD_STEREO_GUIDE_INFO_ENABLE = "DebugHudStereoGuideInfoEnable" # bool
+DEBUG_HUD_STEREO_GUIDE_INFO_ENABLE = b"DebugHudStereoGuideInfoEnable" # bool
 
 
 # Translated from header file OVR_CAPI_Keys.h line 45
-DEBUG_HUD_STEREO_GUIDE_SIZE = "DebugHudStereoGuideSize2f" # float[2]
+DEBUG_HUD_STEREO_GUIDE_SIZE = b"DebugHudStereoGuideSize2f" # float[2]
 
 
 # Translated from header file OVR_CAPI_Keys.h line 46
-DEBUG_HUD_STEREO_GUIDE_POSITION = "DebugHudStereoGuidePosition3f" # float[3]
+DEBUG_HUD_STEREO_GUIDE_POSITION = b"DebugHudStereoGuidePosition3f" # float[3]
 
 
 # Translated from header file OVR_CAPI_Keys.h line 47
-DEBUG_HUD_STEREO_GUIDE_YAWPITCHROLL = "DebugHudStereoGuideYawPitchRoll3f" # float[3]
+DEBUG_HUD_STEREO_GUIDE_YAWPITCHROLL = b"DebugHudStereoGuideYawPitchRoll3f" # float[3]
 
 
 # Translated from header file OVR_CAPI_Keys.h line 48
-DEBUG_HUD_STEREO_GUIDE_COLOR = "DebugHudStereoGuideColor4f" # float[4]
+DEBUG_HUD_STEREO_GUIDE_COLOR = b"DebugHudStereoGuideColor4f" # float[4]
 
 
 ### END Declarations from C header file OVR_CAPI_Keys.h ###
