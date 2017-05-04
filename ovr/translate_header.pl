@@ -52,7 +52,7 @@ END_LEN
     def __getitem__(self, key):
         "access contained elements"
         if isinstance(key, slice):
-            return [self[ii] for ii in xrange(*key.indices(len(self)))]
+            return [self[ii] for ii in range(*key.indices(len(self)))]
         else:
             return getattr(self, self._fields_[key][0])
 END_GETITEM
@@ -166,7 +166,7 @@ try:
     libovr = CDLL(_libname)
 except:
 END_PREAMBLE
-    print $fh "    print \"Is Oculus Runtime $sdk_version2 installed on this machine?\"\n";
+    print $fh "    print(\"Is Oculus Runtime $sdk_version2 installed on this machine?\")\n";
     print $fh <<'END_PREAMBLE';
     raise
 
@@ -217,12 +217,12 @@ def byref(obj):
     b = None if obj is None else ctypes.byref(obj)
     return b
 
-ovrFalse = c_char(chr(0)) # note potential conflict with Python built in symbols
-ovrTrue = c_char(chr(1))
+ovrFalse = c_char(chr(0).encode('utf-8')) # note potential conflict with Python built in symbols
+ovrTrue = c_char(chr(1).encode('utf-8'))
 
 def toOvrBool(arg):
     # One tricky case:
-    if arg == chr(0):
+    if arg == chr(0).encode('utf-8'):
         return ovrFalse
     # Remainder are easy cases:
     if bool(arg):
@@ -262,13 +262,13 @@ if __name__ == "__main__":
     initialize(None)
     hmd, luid = create()
     desc = getHmdDesc(hmd)
-    print desc.Resolution
-    print desc.ProductName
+    print(desc.Resolution)
+    print(desc.ProductName)
     # Query the HMD for the current tracking state.
     ts  = getTrackingState(hmd, getTimeInSeconds())
     if ts.StatusFlags & (Status_OrientationTracked | Status_PositionTracked):
         pose = ts.HeadPose
-        print pose.ThePose
+        print(pose.ThePose)
         # TODO:
 
     destroy(hmd)
@@ -363,6 +363,9 @@ sub process_constants {
         $value =~ s/\{/\[/g;
         $value =~ s/\}/\]/g;
         $value =~ s/OVR_//; # equal to other key...
+
+        # Convert string literals into byte strings, for compatibility with python 3
+        $value =~ s/^\"/b\"/;
 
         $comment = translate_comment($comment);
         my $trans = "$key = $value $comment\n";
