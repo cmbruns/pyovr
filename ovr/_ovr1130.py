@@ -99,13 +99,13 @@ def _checkResult(ovrResult, functionName):
     "Raises an exception if a function returns an error code"
     if not FAILURE(ovrResult):
         return # Function succeeded, so carry on
-    msg = b"Call to function ovr.%s() failed. Error code %d." % (
+    msg = "Call to function ovr.%s() failed. Error code %d." % (
         functionName, ovrResult)
     try:
         errorInfo = getLastErrorInfo()
-        msg += b" %s (%d)" % (errorInfo.ErrorString, errorInfo.Result)
+        msg += " %s (%d)" % (errorInfo.ErrorString, errorInfo.Result)
     except:
-        msg += b" And, annoyingly, getLastErrorInfo() failed too."
+        msg += " And, annoyingly, getLastErrorInfo() failed too."
     raise OculusFunctionError(msg)
 
 ### BEGIN Declarations from C header file OVR_Version.h ###
@@ -158,7 +158,7 @@ KEY_GENDER = b"Gender" # string "Male", "Female", or "Unknown"
 
 
 # Translated from header file OVR_CAPI_Keys.h line 18
-DEFAULT_GENDER = b"Unknown"
+DEFAULT_GENDER = b"Unknown" 
 
 
 # Translated from header file OVR_CAPI_Keys.h line 20
@@ -202,7 +202,7 @@ LAYER_HUD_MODE = b"LayerHudMode" # int, allowed values are defined in enum ovrLa
 
 
 # Translated from header file OVR_CAPI_Keys.h line 40
-LAYER_HUD_CURRENT_LAYER = b"LayerHudCurrentLayer" # int, The layer to show
+LAYER_HUD_CURRENT_LAYER = b"LayerHudCurrentLayer" # int, The layer to show 
 
 
 # Translated from header file OVR_CAPI_Keys.h line 41
