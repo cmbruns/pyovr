@@ -5,7 +5,7 @@ use strict;
 use File::Basename;
 
 # Compute OVR SDK version strings for later use
-my @sdk_version_arr = (1, 3, 0);
+my @sdk_version_arr = (1, 13, 0); # CHANGE THIS TO CORRECT VERSION
 my $sdk_version1 = $sdk_version_arr[0]; # one digit version, e.g. "1"
 my $sdk_version2 = join('.', $sdk_version_arr[0], $sdk_version_arr[1]); # two digit version, e.g. "1.3"
 my $sdk_version3 = join('.', @sdk_version_arr); # three digit version, e.g. "1.3.0"
@@ -13,7 +13,10 @@ my $sdk_lib_version = $sdk_version1; # e.g. "1"
 print $sdk_version2, " ", $sdk_version3, " ", $sdk_lib_version, "\n";
 
 # 1) Edit the following line to reflect the location of the OVR include files on your system
-my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_1.3/OculusSDK/LibOVR/Include";
+my $include_folder = "E:/Program Files (x86)/ovr_sdk_win_1.13.0/OculusSDK/LibOVR/Include";
+# my $include_folder = "E:/Program Files (x86)/ovr_sdk_win_1.11.0_public/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.6.0_public/OculusSDK/LibOVR/Include";
+# my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_1.3.0_public/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/cmbruns/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Users/brunsc/Documents/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
 # my $include_folder = "C:/Program Files/ovr_sdk_win_0.8.0.0/OculusSDK/LibOVR/Include";
@@ -140,9 +143,7 @@ Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
 
 import ctypes
-from ctypes import *
-import sys
-import textwrap
+from ctypes import * #@UnusedWildImport
 import math
 import platform
 
@@ -240,9 +241,13 @@ def _checkResult(ovrResult, functionName):
     "Raises an exception if a function returns an error code"
     if not FAILURE(ovrResult):
         return # Function succeeded, so carry on
-    errorInfo = getLastErrorInfo()
-    msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
-        functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
+    msg = "Call to function ovr.%s() failed. Error code %d." % (
+        functionName, ovrResult)
+    try:
+        errorInfo = getLastErrorInfo()
+        msg += " %s (%d)" % (errorInfo.ErrorString, errorInfo.Result)
+    except:
+        msg += " And, annoyingly, getLastErrorInfo() failed too."
     raise OculusFunctionError(msg)
 
 END_PREAMBLE
@@ -291,7 +296,6 @@ sub process_header {
 
     print $out "### BEGIN Declarations from C header file $short_header_name ###\n\n\n";
 
-    # TODO:
     my $header_string = do {
         local $/ = undef;
         open my $fhh, "<", $header
@@ -439,12 +443,13 @@ sub process_functions {
                     $type = "POINTER($type)";
                 }
 
+                # Avoid warning for use of "format" as an identifier per jherico
+                $ident =~ s/^format$/format_/;
+                $ident =~ s/^buffer$/buffer_/;
+
                 if ($type =~ /^POINTER\(/) {
                     $byref_args{$ident} = 1;
                 }
-
-                # Avoid warning for use of "format" as an identifier per jherico
-                $ident =~ s/^format$/format_/;
 
                 push @arg_names, $ident;
                 push @arg_types, $type;
@@ -464,8 +469,14 @@ sub process_functions {
                 # All output arguments of non-array type get special treatment
                 if (! exists $types_by_arg{$arg_name}) {
                     # print "Argument not found! $fn_name : $arg_name \n";
-                    # Hard code luid => pLuid
-                    $arg_name = "p".ucfirst($arg_name);
+                    # Good news! Another Oculus screwup to hard code around from SDK 1.8!
+                    if (($fn_name eq "ovr_GetBoundaryDimensions") and ($arg_name eq "dimensions")) {
+                    	$arg_name = "outDimensions";
+                    }
+                    else {
+	                    # Hard code luid => pLuid
+	                    $arg_name = "p".ucfirst($arg_name);
+                    }
                 }
                 if ($types_by_arg{$arg_name} !~ m/ \* /) {
                     push @out_args, $arg_name;
@@ -500,7 +511,20 @@ sub process_functions {
             my $pointee_type = $1;
             # print $pointee_type, "\n";
             $trans .= "    $arg = ($pointee_type * len($arg))(*[ctypes.pointer(i) for i in $arg])\n";
-        }        
+        }
+        
+        # Special case for initialize method
+        if ($py_fn_name eq "initialize") {
+        	my $parammer = <<'END_INIT_HACK';
+    # Beginning with OVR SDK 1.8, we need to specify the library version here
+    if params is None:
+        params = InitParams()
+        params.Flags = Init_RequestVersion
+        params.RequestedMinorVersion = MINOR_VERSION
+        params.ConnectionTimeoutMS = 0
+END_INIT_HACK
+        	$trans .= $parammer;
+        } 
 
         # Declare local variables for output arguments
         foreach my $arg (@out_args) {
@@ -523,15 +547,23 @@ sub process_functions {
             push @call_args, $arg;
         }
 
+        # Does the delegated function return a value?
+        my $fn_has_result = 1;
+        if ($return_type =~ m/^None$/) {
+        	$fn_has_result = 0;
+        }
+
         # Delegated function call
-        $trans .= "    result = "; # indent function call
+        $trans .= "    "; # indent function call
+        if ($fn_has_result) {
+            $trans .= "result = ";
+        }
         $trans .= "libovr.$fn_name(";
         $trans .= join ", ", @call_args;
         $trans .= ")\n";
 
         # Handle OVR specific return codes
         if ($return_type =~ m/^Result$/) {
-            # TODO: 
             $trans .= <<EOF;
     _checkResult(result, \"$py_fn_name\")
 EOF
@@ -546,7 +578,7 @@ EOF
             }
             push @return_items, @out_args;
         }
-        else {
+        elsif ($fn_has_result) {
             # Might as well return result var, if it's the only output
             push @return_items, "result";
         }
@@ -790,6 +822,7 @@ sub process_macros {
         # Remove OVR_ prefix
         $fn_name =~ s/\bOVR_//g;
         $fn_body =~ s/\bOVR_//g;
+        $fn_body =~ s/\bovrSuccess\b/Success/g;
 
         # Translate not
         $fn_body =~ s/!/not /g;
@@ -807,6 +840,42 @@ sub process_macros {
 sub process_enums {
     my $code = shift;
     my $by_pos = shift;
+
+	# Most enums in OVR SDK say "typedef enum <blah blah>"
+	# Starting in SDK 1.8, there is a
+	# "enum { ovrMaxProvidedFrameStats = 5 };"
+	# So here we process these anonymous enums
+	while ($code =~ m/
+            ((?:$comment_line_rx)*) # Previous block of comment lines
+            (?<=\n)[\ \t]* # lookbehind for start of line
+			enum\s*
+            \s*\{ # open brace
+            ([^\}]*) # TODO: contents
+            \}\s* # close brace
+			/gx) 
+	{
+		my $comment = $1;
+		my $contents = $2;
+		my $p = pos($code) - length($&);
+		
+		my $trans = "";
+		
+        $comment = translate_comment($comment);
+        if (defined $comment) {
+            $trans .= "$comment";
+        }
+
+		foreach my $expression (split ',', $contents) {
+			next if ($expression =~ m/^\s*$/);
+			die unless $expression =~ m/^\s*(\S+)\s*=\s*(\S+)\s*$/;
+			my $symbol = $1;
+			my $value = $2;
+			$symbol =~ s/^ovr//;
+			print "Weird enum: $symbol = $value\n";
+			$trans .= "$symbol = $value\n";
+		}
+	    $by_pos->{$p} = $trans;
+	}
 
     # First use a simple regex, to be sure of counting all examples
     # "typedef int32_t ovrResult;"
@@ -847,13 +916,30 @@ sub process_enums {
         # 2) Fill in contents
 
         my $prev_val = "";
+        my $partial_line = undef;
         foreach my $line (split "\n", $contents) {
             next if $line =~ m/^\s*$/; # skip blank lines
+            $line =~ s/^\s*//; # remove leading spaces
+            $line =~ s/\s*$//; # remove trailing spaces
+
+            if (defined $partial_line) {
+                # print "line = #$line#\n";
+                # print "partial_line = #$partial_line#\n";
+            	$line = "$partial_line $line";
+                # print "Combined line = #$line#\n";
+            	$partial_line = undef;
+            }
+            
+            # Some values are continued on another line
+            if ($line =~ m!^[^,/]+\|\s*$!) { # line ends with OR operator
+                $partial_line = $line;
+                next;
+            }
+            
             $line =~ s!///!\#!; # convert comments to python style
             $line =~ s!//!\#!; # convert comments to python style
             $line =~ s!/\*!\#!; # convert comments to python style
             $line =~ s!\*/!\#!; # convert comments to python style
-            $line =~ s/^\s*//; # remove leading spaces
             # Translate individual enum entries, removing comma
             # e.g. "ovrSuccess_HMDFirmwareMismatch        = 4100,   ///< The HMD Firmware is out of date but is acceptable."
             # "    ovrDebugHudStereo_EnumSize = 0x7fffffff     ///< \internal Force type int32_t"
@@ -869,7 +955,12 @@ sub process_enums {
                 $id = translate_type($id);
                 $val = translate_type($val); # Might be another enum value
 
-                $rest =~ s/\| ovr/\| /g; # remove "ovr" prefix from "OR"ed definitions
+                # remove ALL the ovr prefixes within complex enum arithmetic
+                $val =~ s/\bovr//g;
+                $rest =~ s/\bovr//g;
+                # $val =~ s/^\(ovr/\(/; # remove "ovr" prefix from first among parenthesized "OR"ed definitions
+                # $rest =~ s/\| ovr/\| /g; # remove "ovr" prefix from "OR"ed definitions
+                $rest =~ s/\,\s*$//; # remove trailing comma, if it made it this far (i.e. in OR expressions)
 
                 $line = "$id$equals$val$rest";
 
@@ -894,7 +985,7 @@ sub process_enums {
 
                 $prev_val = $id;
             }
-
+            
             $trans .= "$line\n";
         }
 
@@ -1001,6 +1092,10 @@ sub translate_type {
     # translate pointer type "ptr"
     while ($type =~ m/^([^\*]+)ptr(.*)$/) { # uintptr_t -> POINTER(c_uint)
        $type = "POINTER($1)$2";
+    }
+
+    if ($type =~ /^POINTER\(void\)$/) {
+        $type = "c_void_p";
     }
 
     if ($type =~ /^void$/) {

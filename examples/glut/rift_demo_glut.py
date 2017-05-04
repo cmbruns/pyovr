@@ -19,7 +19,7 @@ class GlutDemoApp():
         glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE)
         glutInitWindowSize(400, 400)
         glutInitWindowPosition(50, 50)
-        win = glutCreateWindow("Just a triangle")
+        win = glutCreateWindow(b"Just a triangle")
         glutDisplayFunc(self.display)
         glutIdleFunc(self.renderer.display_gl)
         glutReshapeFunc(self.renderer.resize_gl)

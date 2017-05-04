@@ -143,8 +143,8 @@ class RiftGLRendererCompatibility(list):
         layer.ColorTexture[1]  = self.textureSwapChain # single texture for both eyes
         layer.Fov[0]           = eyeRenderDesc[0].Fov
         layer.Fov[1]           = eyeRenderDesc[1].Fov
-        layer.Viewport[0]      = ovr.Recti(ovr.Vector2i(0, 0),                ovr.Sizei(bufferSize.w / 2, bufferSize.h))
-        layer.Viewport[1]      = ovr.Recti(ovr.Vector2i(bufferSize.w / 2, 0), ovr.Sizei(bufferSize.w / 2, bufferSize.h))
+        layer.Viewport[0]      = ovr.Recti(ovr.Vector2i(0, 0),                ovr.Sizei(int(bufferSize.w / 2), bufferSize.h))
+        layer.Viewport[1]      = ovr.Recti(ovr.Vector2i(int(bufferSize.w / 2), 0), ovr.Sizei(int(bufferSize.w / 2), bufferSize.h))
         self.layer = layer
 
     def _set_up_desktop_projection(self):

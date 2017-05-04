@@ -1,6 +1,6 @@
 """
 Python module "ovr"
-Python bindings for Oculus Rift SDK version 1.3.0
+Python bindings for Oculus Rift SDK version 1.11.0
 
 Works on Windows only at the moment (just like Oculus Rift SDK...)
 """
@@ -25,7 +25,7 @@ if platform.system().startswith("Win"):
 try:
     libovr = CDLL(_libname)
 except:
-    print("Is Oculus Runtime 1.3 installed on this machine?")
+    print("Is Oculus Runtime 1.11 installed on this machine?")
     raise
 
 
@@ -99,9 +99,13 @@ def _checkResult(ovrResult, functionName):
     "Raises an exception if a function returns an error code"
     if not FAILURE(ovrResult):
         return # Function succeeded, so carry on
-    errorInfo = getLastErrorInfo()
-    msg = "Call to function ovr.%s() failed. %s Error code %d (%d)" % (
-        functionName, errorInfo.ErrorString, ovrResult, errorInfo.Result)
+    msg = "Call to function ovr.%s() failed. Error code %d." % (
+        functionName, ovrResult)
+    try:
+        errorInfo = getLastErrorInfo()
+        msg += " %s (%d)" % (errorInfo.ErrorString, errorInfo.Result)
+    except:
+        msg += " And, annoyingly, getLastErrorInfo() failed too."
     raise OculusFunctionError(msg)
 
 ### BEGIN Declarations from C header file OVR_Version.h ###
@@ -116,7 +120,7 @@ MAJOR_VERSION = 1 # If you change these values then you need to also make sure t
 
 
 # Translated from header file OVR_Version.h line 21
-MINOR_VERSION = 3 # 
+MINOR_VERSION = 11 # 
 
 
 # Translated from header file OVR_Version.h line 22
@@ -235,47 +239,51 @@ DEBUG_HUD_STEREO_GUIDE_COLOR = "DebugHudStereoGuideColor4f" # float[4]
 ### BEGIN Declarations from C header file OVR_ErrorCode.h ###
 
 
-# Translated from header file OVR_ErrorCode.h line 21
+# Translated from header file OVR_ErrorCode.h line 18
 # API call results are represented at the highest level by a single ovrResult.
 Result = c_int32 
 
 
-# Translated from header file OVR_ErrorCode.h line 33
+# Translated from header file OVR_ErrorCode.h line 30
 def SUCCESS(result):
     return result >= 0
 
 
-# Translated from header file OVR_ErrorCode.h line 44
+# Translated from header file OVR_ErrorCode.h line 41
 def UNQUALIFIED_SUCCESS(result):
     return result == Success
 
 
-# Translated from header file OVR_ErrorCode.h line 51
+# Translated from header file OVR_ErrorCode.h line 48
 def FAILURE(result):
     return not SUCCESS(result)
 
 
-# Translated from header file OVR_ErrorCode.h line 57
+# Translated from header file OVR_ErrorCode.h line 54
 SuccessType = ENUM_TYPE
 # This is a general success result. Use OVR_SUCCESS to test for success.
 Success = 0
+
+
+# Translated from header file OVR_ErrorCode.h line 61
+# Public success types
+# Success is a value greater or equal to 0, while all error types are negative values.
+SuccessTypes = ENUM_TYPE
 # Returned from a call to SubmitFrame. The call succeeded, but what the app
 # rendered will not be visible on the HMD. Ideally the app should continue
 # calling SubmitFrame, but not do any rendering. When the result becomes
 # ovrSuccess, rendering should continue as usual.
 Success_NotVisible                 = 1000
-Success_HMDFirmwareMismatch        = 4100   #< The HMD Firmware is out of date but is acceptable.
-Success_TrackerFirmwareMismatch    = 4101   #< The Tracker Firmware is out of date but is acceptable.
-Success_ControllerFirmwareMismatch = 4104   #< The controller firmware is out of date but is acceptable.
-Success_TrackerDriverNotFound      = 4105   #< The tracker driver interface was not found. Can be a temporary error
+Success_BoundaryInvalid            = 1001  #< Boundary is invalid due to sensor change or was not setup.
+Success_DeviceUnavailable          = 1002  #< Device is not available for the requested operation.
 
 
-# Translated from header file OVR_ErrorCode.h line 77
+# Translated from header file OVR_ErrorCode.h line 75
+# Public error types
 ErrorType = ENUM_TYPE
 # General errors #
 Error_MemoryAllocationFailure    = -1000   #< Failure to allocate memory.
-Error_SocketCreationFailure      = -1001   #< Failure to create a socket.
-Error_InvalidSession             = -1002   #< Invalid ovrSession parameter provided.
+Error_InvalidSession             = -1002   #< Invalid Session parameter provided.
 Error_Timeout                    = -1003   #< The operation timed out.
 Error_NotInitialized             = -1004   #< The system or component has not been initialized.
 Error_InvalidParameter           = -1005   #< Invalid parameter provided. See error info or log for details.
@@ -283,14 +291,14 @@ Error_ServiceError               = -1006   #< Generic service error. See error i
 Error_NoHmd                      = -1007   #< The given HMD doesn't exist.
 Error_Unsupported                = -1009   #< Function call is not supported on this hardware/software
 Error_DeviceUnavailable          = -1010   #< Specified device type isn't available.
-Error_InvalidHeadsetOrientation  = -1011   #< The headset was in an invalid orientation for the requested operation (e.g. vertically oriented during ovr_RecenterPose).
-Error_ClientSkippedDestroy       = -1012   #< The client failed to call ovr_Destroy on an active session before calling ovr_Shutdown. Or the client crashed.
-Error_ClientSkippedShutdown      = -1013   #< The client failed to call ovr_Shutdown or the client crashed.
+Error_InvalidHeadsetOrientation  = -1011   #< The headset was in an invalid orientation for the requested operation (e.g. vertically oriented during _RecenterPose).
+Error_ClientSkippedDestroy       = -1012   #< The client failed to call _Destroy on an active session before calling _Shutdown. Or the client crashed.
+Error_ClientSkippedShutdown      = -1013   #< The client failed to call _Shutdown or the client crashed.
+Error_ServiceDeadlockDetected    = -1014   #< The service watchdog discovered a deadlock.
+Error_InvalidOperation           = -1015   #< Function call is invalid for object's current state
 # Audio error range, reserved for Audio errors. #
-Error_AudioReservedBegin         = -2000   #< First Audio error.
 Error_AudioDeviceNotFound        = -2001   #< Failure to find the specified audio device.
 Error_AudioComError              = -2002   #< Generic COM error.
-Error_AudioReservedEnd           = -2999   #< Last Audio error.
 # Initialization errors. #
 Error_Initialize                 = -3000   #< Generic initialization error.
 Error_LibLoad                    = -3001   #< Couldn't load LibOVRRT.
@@ -313,56 +321,30 @@ Error_DisabledOrDefaultAdapter   = -3017   #< No supported VR display system fou
 Error_HybridGraphicsNotSupported = -3018   #< The system is using hybrid graphics (Optimus, etc...), which is not support.
 Error_DisplayManagerInit         = -3019   #< Initialization of the DisplayManager failed.
 Error_TrackerDriverInit          = -3020   #< Failed to get the interface for an attached tracker
-# Hardware errors #
-Error_InvalidBundleAdjustment    = -4000   #< Headset has no bundle adjustment data.
-Error_USBBandwidth               = -4001   #< The USB hub cannot handle the camera frame bandwidth.
-Error_USBEnumeratedSpeed         = -4002   #< The USB camera is not enumerating at the correct device speed.
-Error_ImageSensorCommError       = -4003   #< Unable to communicate with the image sensor.
-Error_GeneralTrackerFailure      = -4004   #< We use this to report various sensor issues that don't fit in an easily classifiable bucket.
-Error_ExcessiveFrameTruncation   = -4005   #< A more than acceptable number of frames are coming back truncated.
-Error_ExcessiveFrameSkipping     = -4006   #< A more than acceptable number of frames have been skipped.
-Error_SyncDisconnected           = -4007   #< The sensor is not receiving the sync signal (cable disconnected?).
-Error_TrackerMemoryReadFailure   = -4008   #< Failed to read memory from the sensor.
-Error_TrackerMemoryWriteFailure  = -4009   #< Failed to write memory from the sensor.
-Error_TrackerFrameTimeout        = -4010   #< Timed out waiting for a camera frame.
-Error_TrackerTruncatedFrame      = -4011   #< Truncated frame returned from sensor.
-Error_TrackerDriverFailure       = -4012   #< The sensor driver has encountered a problem.
-Error_TrackerNRFFailure          = -4013   #< The sensor wireless subsystem has encountered a problem.
-Error_HardwareGone               = -4014   #< The hardware has been unplugged
-Error_NordicEnabledNoSync        = -4015   #< The nordic indicates that sync is enabled but it is not sending sync pulses
-Error_NordicSyncNoFrames         = -4016   #< It looks like we're getting a sync signal, but no camera frames have been received
-Error_CatastrophicFailure        = -4017   #< A catastrophic failure has occurred.  We will attempt to recover by resetting the device
-Error_HMDFirmwareMismatch        = -4100   #< The HMD Firmware is out of date and is unacceptable.
-Error_TrackerFirmwareMismatch    = -4101   #< The sensor Firmware is out of date and is unacceptable.
-Error_BootloaderDeviceDetected   = -4102   #< A bootloader HMD is detected by the service.
-Error_TrackerCalibrationError    = -4103   #< The sensor calibration is missing or incorrect.
-Error_ControllerFirmwareMismatch = -4104   #< The controller firmware is out of date and is unacceptable.
-Error_IMUTooManyLostSamples      = -4200   #< Too many lost IMU samples.
-Error_IMURateError               = -4201   #< IMU rate is outside of the expected range.
-Error_FeatureReportFailure       = -4202   #< A feature report has failed.
-# Synchronization errors #
-Error_Incomplete                 = -5000   #<Requested async work not yet complete.
-Error_Abandoned                  = -5001   #<Requested async work was abandoned and result is incomplete.
+Error_LibSignCheck               = -3021   #< LibOVRRT signature check failure.
+Error_LibPath                    = -3022   #< LibOVRRT path failure.
+Error_LibSymbols                 = -3023   #< LibOVRRT symbol resolution failure.
+Error_RemoteSession              = -3024   #< Failed to connect to the service because remote connections to the service are not allowed.
 # Rendering errors #
-Error_DisplayLost                = -6000   #<In the event of a system-wide graphics reset or cable unplug this is returned to the app.
-Error_TextureSwapChainFull       = -6001   #<ovr_CommitTextureSwapChain was called too many times on a texture swapchain without calling submit to use the chain.
-Error_TextureSwapChainInvalid    = -6002   #<The ovrTextureSwapChain is in an incomplete or inconsistent state. Ensure ovr_CommitTextureSwapChain was called at least once first.
+Error_DisplayLost                = -6000   #< In the event of a system-wide graphics reset or cable unplug this is returned to the app.
+Error_TextureSwapChainFull       = -6001   #< _CommitTextureSwapChain was called too many times on a texture swapchain without calling submit to use the chain.
+Error_TextureSwapChainInvalid    = -6002   #< The TextureSwapChain is in an incomplete or inconsistent state. Ensure _CommitTextureSwapChain was called at least once first.
+Error_GraphicsDeviceReset        = -6003   #< Graphics device has been reset (TDR, etc...)
+Error_DisplayRemoved             = -6004   #< HMD removed from the display adapter
+Error_ContentProtectionNotAvailable = -6005#<Content protection is not available for the display
+Error_ApplicationInvisible       = -6006   #< Application declared itself as an invisible type and is not allowed to submit frames.
+Error_Disallowed                 = -6007   #< The given request is disallowed under the current conditions.
+Error_DisplayPluggedIncorrectly  = -6008   #< Display portion of HMD is plugged into an incompatible port (ex: IGP)
 # Fatal errors #
 Error_RuntimeException           = -7000   #< A runtime exception occurred. The application is required to shutdown LibOVR and re-initialize it before this error state will be cleared.
-Error_MetricsUnknownApp            = -90000
-Error_MetricsDuplicateApp          = -90001
-Error_MetricsNoEvents              = -90002
-Error_MetricsRuntime               = -90003
-Error_MetricsFile                  = -90004
-Error_MetricsNoClientInfo          = -90005
-Error_MetricsNoAppMetaData         = -90006
-Error_MetricsNoApp                 = -90007
-Error_MetricsOafFailure            = -90008
-Error_MetricsSessionAlreadyActive  = -90009
-Error_MetricsSessionNotActive      = -90010
+# Calibration errors #
+Error_NoCalibration              = -9000   #< Result of a missing calibration block
+Error_OldVersion                 = -9001   #< Result of an old calibration block
+Error_MisformattedBlock          = -9002   #< Result of a bad calibration block due to lengths
+# Other errors #
 
 
-# Translated from header file OVR_ErrorCode.h line 182
+# Translated from header file OVR_ErrorCode.h line 151
 class ErrorInfo(Structure):
     """
     Provides information about the last error.
@@ -388,6 +370,21 @@ Bool = c_char    #< Boolean type
 
 
 # Translated from header file OVR_CAPI.h line 273
+class Colorf(Structure):
+    "A RGBA color with normalized float components."
+    _pack_ = 4
+    _fields_ = [
+        ("r", c_float), 
+        ("g", c_float), 
+        ("b", c_float), 
+        ("a", c_float), 
+    ]
+
+    def __repr__(self):
+        return "ovr.Colorf(%s, %s, %s, %s)" % (self.r, self.g, self.b, self.a)
+
+
+# Translated from header file OVR_CAPI.h line 279
 class Vector2i(Structure):
     "A 2D vector with integer components."
     _pack_ = 4
@@ -411,7 +408,7 @@ class Vector2i(Structure):
             return getattr(self, self._fields_[key][0])
 
 
-# Translated from header file OVR_CAPI.h line 279
+# Translated from header file OVR_CAPI.h line 285
 class Sizei(Structure):
     "A 2D size with integer components."
     _pack_ = 4
@@ -435,7 +432,7 @@ class Sizei(Structure):
             return getattr(self, self._fields_[key][0])
 
 
-# Translated from header file OVR_CAPI.h line 285
+# Translated from header file OVR_CAPI.h line 291
 class Recti(Structure):
     """
     A 2D rectangle with a position and size.
@@ -451,7 +448,7 @@ class Recti(Structure):
         return "ovr.Recti(%s, %s)" % (self.Pos, self.Size)
 
 
-# Translated from header file OVR_CAPI.h line 293
+# Translated from header file OVR_CAPI.h line 299
 class Quatf(Structure):
     "A quaternion rotation."
     _pack_ = 4
@@ -514,7 +511,7 @@ class Quatf(Structure):
         return a, b, c
 
 
-# Translated from header file OVR_CAPI.h line 299
+# Translated from header file OVR_CAPI.h line 305
 class Vector2f(Structure):
     "A 2D vector with float components."
     _pack_ = 4
@@ -538,7 +535,7 @@ class Vector2f(Structure):
             return getattr(self, self._fields_[key][0])
 
 
-# Translated from header file OVR_CAPI.h line 305
+# Translated from header file OVR_CAPI.h line 311
 class Vector3f(Structure):
     "A 3D vector with float components."
     _pack_ = 4
@@ -563,7 +560,7 @@ class Vector3f(Structure):
             return getattr(self, self._fields_[key][0])
 
 
-# Translated from header file OVR_CAPI.h line 311
+# Translated from header file OVR_CAPI.h line 317
 class Matrix4f(Structure):
     "A 4x4 matrix with float elements."
     _pack_ = 4
@@ -585,7 +582,7 @@ class Matrix4f(Structure):
         return self.M[j][i]
 
 
-# Translated from header file OVR_CAPI.h line 318
+# Translated from header file OVR_CAPI.h line 324
 class Posef(Structure):
     "Position and orientation together."
     _pack_ = 4
@@ -598,13 +595,13 @@ class Posef(Structure):
         return "ovr.Posef(%s, %s)" % (self.Orientation, self.Position)
 
 
-# Translated from header file OVR_CAPI.h line 325
+# Translated from header file OVR_CAPI.h line 331
 class PoseStatef(Structure):
     """
     A full pose (rigid body) configuration with first and second derivatives.
     
     Body refers to any object for which ovrPoseStatef is providing data.
-    It can be the HMD, Touch controller, sensor or something else. The context 
+    It can be the HMD, Touch controller, sensor or something else. The context
     depends on the usage of the struct.
     """
     _pack_ = 8
@@ -622,7 +619,7 @@ class PoseStatef(Structure):
         return "ovr.PoseStatef(%s, %s, %s, %s, %s, %s)" % (self.ThePose, self.AngularVelocity, self.LinearVelocity, self.AngularAcceleration, self.LinearAcceleration, self.TimeInSeconds)
 
 
-# Translated from header file OVR_CAPI.h line 341
+# Translated from header file OVR_CAPI.h line 347
 class FovPort(Structure):
     """
     Describes the up, down, left, and right angles of the field of view.
@@ -643,7 +640,7 @@ class FovPort(Structure):
         return "ovr.FovPort(%s, %s, %s, %s)" % (self.UpTan, self.DownTan, self.LeftTan, self.RightTan)
 
 
-# Translated from header file OVR_CAPI.h line 358
+# Translated from header file OVR_CAPI.h line 364
 # Enumerates all HMD types that we support.
 #
 # The currently released developer kits are ovrHmd_DK1 and ovrHmd_DK2. The other enumerations are for internal use only.
@@ -661,7 +658,7 @@ Hmd_ES11      = 13
 Hmd_CV1       = 14
 
 
-# Translated from header file OVR_CAPI.h line 379
+# Translated from header file OVR_CAPI.h line 385
 # HMD capability bits reported by device.
 #
 HmdCaps = ENUM_TYPE
@@ -669,7 +666,7 @@ HmdCaps = ENUM_TYPE
 HmdCap_DebugDevice             = 0x0010   #< <B>(read only)</B> Specifies that the HMD is a virtual debug device.
 
 
-# Translated from header file OVR_CAPI.h line 391
+# Translated from header file OVR_CAPI.h line 397
 # Tracking capability bits reported by the device.
 # Used with ovr_GetTrackingCaps.
 TrackingCaps = ENUM_TYPE
@@ -678,7 +675,7 @@ TrackingCap_MagYawCorrection = 0x0020    #< Supports yaw drift correction via a 
 TrackingCap_Position         = 0x0040    #< Supports positional tracking.
 
 
-# Translated from header file OVR_CAPI.h line 402
+# Translated from header file OVR_CAPI.h line 408
 # Specifies which eye is being used for rendering.
 # This type explicitly does not include a third "NoStereo" monoscopic option, as such is
 # not required for an HMD-centered API.
@@ -688,7 +685,7 @@ Eye_Right    = 1         #< The right eye, from the viewer's perspective.
 Eye_Count    = 2         #< \internal Count of enumerated elements.
 
 
-# Translated from header file OVR_CAPI.h line 413
+# Translated from header file OVR_CAPI.h line 419
 # Specifies the coordinate system ovrTrackingState returns tracking poses in.
 # Used with ovr_SetTrackingOriginType()
 TrackingOrigin = ENUM_TYPE
@@ -716,7 +713,7 @@ TrackingOrigin_FloorLevel = 1
 TrackingOrigin_Count = 2            #< \internal Count of enumerated elements.
 
 
-# Translated from header file OVR_CAPI.h line 442
+# Translated from header file OVR_CAPI.h line 450
 class GraphicsLuid(Structure):
     """
     Identifies a graphics device in a platform-specific way.
@@ -732,7 +729,7 @@ class GraphicsLuid(Structure):
         return "ovr.GraphicsLuid(%s)" % (self.Reserved)
 
 
-# Translated from header file OVR_CAPI.h line 451
+# Translated from header file OVR_CAPI.h line 459
 class HmdDesc(Structure):
     "This is a complete descriptor of the HMD."
     _pack_ = OVR_PTR_SIZE
@@ -761,12 +758,12 @@ class HmdDesc(Structure):
         return "ovr.HmdDesc(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" % (self.Type, self.ProductName, self.Manufacturer, self.VendorId, self.ProductId, self.SerialNumber, self.FirmwareMajor, self.FirmwareMinor, self.AvailableHmdCaps, self.DefaultHmdCaps, self.AvailableTrackingCaps, self.DefaultTrackingCaps, self.DefaultEyeFov, self.MaxEyeFov, self.Resolution, self.DisplayRefreshRate)
 
 
-# Translated from header file OVR_CAPI.h line 475
+# Translated from header file OVR_CAPI.h line 483
 # Used as an opaque pointer to an OVR session.
 Session = POINTER(HmdStruct) 
 
 
-# Translated from header file OVR_CAPI.h line 480
+# Translated from header file OVR_CAPI.h line 488
 # Bit flags describing the current status of sensor tracking.
 #  The values must be the same as in enum StatusBits
 #
@@ -777,12 +774,12 @@ Status_OrientationTracked    = 0x0001    #< Orientation is currently tracked (co
 Status_PositionTracked       = 0x0002    #< Position is currently tracked (false if out of range).
 
 
-# Translated from header file OVR_CAPI.h line 493
+# Translated from header file OVR_CAPI.h line 501
 class TrackerDesc(Structure):
     """
      Specifies the description of a single sensor.
     
-    \see ovrGetTrackerDesc
+    \see ovr_GetTrackerDesc
     """
     _pack_ = OVR_PTR_SIZE
     _fields_ = [
@@ -796,17 +793,17 @@ class TrackerDesc(Structure):
         return "ovr.TrackerDesc(%s, %s, %s, %s)" % (self.FrustumHFovInRadians, self.FrustumVFovInRadians, self.FrustumNearZInMeters, self.FrustumFarZInMeters)
 
 
-# Translated from header file OVR_CAPI.h line 506
+# Translated from header file OVR_CAPI.h line 514
 #  Specifies sensor flags.
 #
 #  /see ovrTrackerPose
 #
 TrackerFlags = ENUM_TYPE
 Tracker_Connected   = 0x0020      #< The sensor is present, else the sensor is absent or offline.
-Tracker_PoseTracked = 0x0004       #< The sensor has a valid pose, else the pose is unavailable. This will only be set if ovrTracker_Connected is set.
+Tracker_PoseTracked = 0x0004       #< The sensor has a valid pose, else the pose is unavailable. This will only be set if Tracker_Connected is set.
 
 
-# Translated from header file OVR_CAPI.h line 517
+# Translated from header file OVR_CAPI.h line 525
 class TrackerPose(Structure):
     """
      Specifies the pose for a single sensor.
@@ -823,7 +820,7 @@ class TrackerPose(Structure):
         return "ovr.TrackerPose(%s, %s, %s)" % (self.TrackerFlags, self.Pose, self.LeveledPose)
 
 
-# Translated from header file OVR_CAPI.h line 528
+# Translated from header file OVR_CAPI.h line 536
 class TrackingState(Structure):
     """
     Tracking state at a given absolute time (describes predicted HMD pose, etc.).
@@ -846,11 +843,11 @@ class TrackingState(Structure):
         ("HandStatusFlags", c_uint * 2), 
         # The pose of the origin captured during calibration.
         # Like all other poses here, this is expressed in the space set by ovr_RecenterTrackingOrigin,
-        # and so will change every time that is called. This pose can be used to calculate
-        # where the calibrated origin lands in the new recentered space.
-        # If an application never calls ovr_RecenterTrackingOrigin, expect this value to be the identity
-        # pose and as such will point respective origin based on ovrTrackingOrigin requested when
-        # calling ovr_GetTrackingState.
+        # or ovr_SpecifyTrackingOrigin and so will change every time either of those functions are called.
+        # This pose can be used to calculate where the calibrated origin lands in the new recentered space.
+        # If an application never calls ovr_RecenterTrackingOrigin or ovr_SpecifyTrackingOrigin, expect
+        # this value to be the identity pose and as such will point respective origin based on
+        # ovrTrackingOrigin requested when calling ovr_GetTrackingState.
         ("CalibratedOrigin", Posef), 
     ]
 
@@ -858,7 +855,7 @@ class TrackingState(Structure):
         return "ovr.TrackingState(%s, %s, %s, %s, %s)" % (self.HeadPose, self.StatusFlags, self.HandPoses, self.HandStatusFlags, self.CalibratedOrigin)
 
 
-# Translated from header file OVR_CAPI.h line 562
+# Translated from header file OVR_CAPI.h line 571
 class EyeRenderDesc(Structure):
     """
     Rendering information for each eye. Computed by ovr_GetRenderDesc() based on the
@@ -881,7 +878,7 @@ class EyeRenderDesc(Structure):
         return "ovr.EyeRenderDesc(%s, %s, %s, %s, %s)" % (self.Eye, self.Fov, self.DistortedViewport, self.PixelsPerTanAngleAtCenter, self.HmdToEyeOffset)
 
 
-# Translated from header file OVR_CAPI.h line 579
+# Translated from header file OVR_CAPI.h line 588
 class TimewarpProjectionDesc(Structure):
     """
     Projection information for ovrLayerEyeFovDepth.
@@ -902,7 +899,7 @@ class TimewarpProjectionDesc(Structure):
         return "ovr.TimewarpProjectionDesc(%s, %s, %s)" % (self.Projection22, self.Projection23, self.Projection32)
 
 
-# Translated from header file OVR_CAPI.h line 594
+# Translated from header file OVR_CAPI.h line 603
 class ViewScaleDesc(Structure):
     """
     Contains the data necessary to properly calculate position info for various layer types.
@@ -926,7 +923,7 @@ class ViewScaleDesc(Structure):
         return "ovr.ViewScaleDesc(%s, %s)" % (self.HmdToEyeOffset, self.HmdSpaceToWorldScaleInMeters)
 
 
-# Translated from header file OVR_CAPI.h line 615
+# Translated from header file OVR_CAPI.h line 624
 # The type of texture resource.
 #
 # \see ovrTextureSwapChainDesc
@@ -938,7 +935,7 @@ Texture_Cube = Texture_2D_External + 1            #< Cube maps. Not currently su
 Texture_Count = Texture_Cube + 1 
 
 
-# Translated from header file OVR_CAPI.h line 628
+# Translated from header file OVR_CAPI.h line 637
 # The bindings required for texture swap chain.
 #
 # All texture swap chains are automatically bindable as shader
@@ -953,31 +950,44 @@ TextureBind_DX_UnorderedAccess = 0x0002 #< The application can write to the chai
 TextureBind_DX_DepthStencil = 0x0004    #< The chain buffers can be bound as depth and/or stencil buffers
 
 
-# Translated from header file OVR_CAPI.h line 645
+# Translated from header file OVR_CAPI.h line 654
 # The format of a texture.
 #
 # \see ovrTextureSwapChainDesc
 #
 TextureFormat = ENUM_TYPE
-OVR_FORMAT_UNKNOWN = 0 
-OVR_FORMAT_B5G6R5_UNORM = OVR_FORMAT_UNKNOWN + 1    #< Not currently supported on PC. Would require a DirectX 11.1 device.
-OVR_FORMAT_B5G5R5A1_UNORM = OVR_FORMAT_B5G6R5_UNORM + 1  #< Not currently supported on PC. Would require a DirectX 11.1 device.
-OVR_FORMAT_B4G4R4A4_UNORM = OVR_FORMAT_B5G5R5A1_UNORM + 1  #< Not currently supported on PC. Would require a DirectX 11.1 device.
-OVR_FORMAT_R8G8B8A8_UNORM = OVR_FORMAT_B4G4R4A4_UNORM + 1 
-OVR_FORMAT_R8G8B8A8_UNORM_SRGB = OVR_FORMAT_R8G8B8A8_UNORM + 1 
-OVR_FORMAT_B8G8R8A8_UNORM = OVR_FORMAT_R8G8B8A8_UNORM_SRGB + 1 
-OVR_FORMAT_B8G8R8A8_UNORM_SRGB = OVR_FORMAT_B8G8R8A8_UNORM + 1 #< Not supported for OpenGL applications
-OVR_FORMAT_B8G8R8X8_UNORM = OVR_FORMAT_B8G8R8A8_UNORM_SRGB + 1      #< Not supported for OpenGL applications
-OVR_FORMAT_B8G8R8X8_UNORM_SRGB = OVR_FORMAT_B8G8R8X8_UNORM + 1 #< Not supported for OpenGL applications
-OVR_FORMAT_R16G16B16A16_FLOAT = OVR_FORMAT_B8G8R8X8_UNORM_SRGB + 1 
-OVR_FORMAT_D16_UNORM = OVR_FORMAT_R16G16B16A16_FLOAT + 1 
-OVR_FORMAT_D24_UNORM_S8_UINT = OVR_FORMAT_D16_UNORM + 1 
-OVR_FORMAT_D32_FLOAT = OVR_FORMAT_D24_UNORM_S8_UINT + 1 
-OVR_FORMAT_D32_FLOAT_S8X24_UINT = OVR_FORMAT_D32_FLOAT + 1 
+OVR_FORMAT_UNKNOWN              = 0
+OVR_FORMAT_B5G6R5_UNORM         = 1    #< Not currently supported on PC. Would require a DirectX 11.1 device.
+OVR_FORMAT_B5G5R5A1_UNORM       = 2    #< Not currently supported on PC. Would require a DirectX 11.1 device.
+OVR_FORMAT_B4G4R4A4_UNORM       = 3    #< Not currently supported on PC. Would require a DirectX 11.1 device.
+OVR_FORMAT_R8G8B8A8_UNORM       = 4
+OVR_FORMAT_R8G8B8A8_UNORM_SRGB  = 5
+OVR_FORMAT_B8G8R8A8_UNORM       = 6
+OVR_FORMAT_B8G8R8A8_UNORM_SRGB  = 7    #< Not supported for OpenGL applications
+OVR_FORMAT_B8G8R8X8_UNORM       = 8    #< Not supported for OpenGL applications
+OVR_FORMAT_B8G8R8X8_UNORM_SRGB  = 9    #< Not supported for OpenGL applications
+OVR_FORMAT_R16G16B16A16_FLOAT   = 10
+OVR_FORMAT_R11G11B10_FLOAT      = 25   #< Introduced in v1.10
+# Depth formats
+OVR_FORMAT_D16_UNORM            = 11
+OVR_FORMAT_D24_UNORM_S8_UINT    = 12
+OVR_FORMAT_D32_FLOAT            = 13
+OVR_FORMAT_D32_FLOAT_S8X24_UINT = 14
+# Added in 1.5 compressed formats can be used for static layers
+OVR_FORMAT_BC1_UNORM            = 15
+OVR_FORMAT_BC1_UNORM_SRGB       = 16
+OVR_FORMAT_BC2_UNORM            = 17
+OVR_FORMAT_BC2_UNORM_SRGB       = 18
+OVR_FORMAT_BC3_UNORM            = 19
+OVR_FORMAT_BC3_UNORM_SRGB       = 20
+OVR_FORMAT_BC6H_UF16            = 21
+OVR_FORMAT_BC6H_SF16            = 22
+OVR_FORMAT_BC7_UNORM            = 23
+OVR_FORMAT_BC7_UNORM_SRGB       = 24
 OVR_FORMAT_ENUMSIZE = 0x7fffffff  #< \internal Force type int32_t.
 
 
-# Translated from header file OVR_CAPI.h line 670
+# Translated from header file OVR_CAPI.h line 694
 # Misc flags overriding particular
 #   behaviors of a texture swap chain
 #
@@ -993,9 +1003,13 @@ TextureMisc_DX_Typeless = 0x0001
 # DX only: Allow generation of the mip chain on the GPU via the GenerateMips
 # call. This flag requires that RenderTarget binding also be specified.
 TextureMisc_AllowGenerateMips = 0x0002
+# Texture swap chain contains protected content, and requires
+# HDCP connection in order to display to HMD. Also prevents
+# mirroring or other redirection of any frame containing this contents
+TextureMisc_ProtectedContent = 0x0004
 
 
-# Translated from header file OVR_CAPI.h line 692
+# Translated from header file OVR_CAPI.h line 721
 class TextureSwapChainDesc(Structure):
     """
     Description used to create a texture swap chain.
@@ -1012,7 +1026,7 @@ class TextureSwapChainDesc(Structure):
         ("MipLevels", c_int), 
         ("SampleCount", c_int),     #< Current only supported on depth textures
         ("StaticImage", Bool),     #< Not buffered in a chain. For images that don't change
-        ("MiscFlags", c_uint),       #< ovrTextureMiscFlags
+        ("MiscFlags", c_uint),       #< ovrTextureFlags
         ("BindFlags", c_uint),       #< ovrTextureBindFlags. Not used for GL.
     ]
 
@@ -1020,7 +1034,7 @@ class TextureSwapChainDesc(Structure):
         return "ovr.TextureSwapChainDesc(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" % (self.Type, self.Format, self.ArraySize, self.Width, self.Height, self.MipLevels, self.SampleCount, self.StaticImage, self.MiscFlags, self.BindFlags)
 
 
-# Translated from header file OVR_CAPI.h line 711
+# Translated from header file OVR_CAPI.h line 740
 class MirrorTextureDesc(Structure):
     """
     Description used to create a mirror texture.
@@ -1032,54 +1046,54 @@ class MirrorTextureDesc(Structure):
         ("Format", TextureFormat), 
         ("Width", c_int), 
         ("Height", c_int), 
-        ("MiscFlags", c_uint),       #< ovrTextureMiscFlags
+        ("MiscFlags", c_uint),       #< ovrTextureFlags
     ]
 
     def __repr__(self):
         return "ovr.MirrorTextureDesc(%s, %s, %s, %s)" % (self.Format, self.Width, self.Height, self.MiscFlags)
 
 
-# Translated from header file OVR_CAPI.h line 724
+# Translated from header file OVR_CAPI.h line 753
 TextureSwapChain = POINTER(TextureSwapChainData) 
 
 
-# Translated from header file OVR_CAPI.h line 725
+# Translated from header file OVR_CAPI.h line 754
 MirrorTexture = POINTER(MirrorTextureData) 
 
 
-# Translated from header file OVR_CAPI.h line 729
+# Translated from header file OVR_CAPI.h line 758
 # Describes button input types.
-# Button inputs are combined; that is they will be reported as pressed if they are 
+# Button inputs are combined; that is they will be reported as pressed if they are
 # pressed on either one of the two devices.
 # The ovrButton_Up/Down/Left/Right map to both XBox D-Pad and directional buttons.
 # The ovrButton_Enter and ovrButton_Return map to Start and Back controller buttons, respectively.
 Button = ENUM_TYPE
-Button_A         = 0x00000001
-Button_B         = 0x00000002
-Button_RThumb    = 0x00000004
-Button_RShoulder = 0x00000008
+Button_A         = 0x00000001 # A button on XBox controllers and right Touch controller. Select button on Oculus Remote.
+Button_B         = 0x00000002 # B button on XBox controllers and right Touch controller. Back button on Oculus Remote.
+Button_RThumb    = 0x00000004 # Right thumbstick on XBox controllers and Touch controllers. Not present on Oculus Remote.
+Button_RShoulder = 0x00000008 # Right shoulder button on XBox controllers. Not present on Touch controllers or Oculus Remote.
+Button_X         = 0x00000100  # X button on XBox controllers and left Touch controller. Not present on Oculus Remote.
+Button_Y         = 0x00000200  # Y button on XBox controllers and left Touch controller. Not present on Oculus Remote.
+Button_LThumb    = 0x00000400  # Left thumbstick on XBox controllers and Touch controllers. Not present on Oculus Remote.
+Button_LShoulder = 0x00000800  # Left shoulder button on XBox controllers. Not present on Touch controllers or Oculus Remote.
+Button_Up        = 0x00010000  # Up button on XBox controllers and Oculus Remote. Not present on Touch controllers.
+Button_Down      = 0x00020000  # Down button on XBox controllers and Oculus Remote. Not present on Touch controllers.
+Button_Left      = 0x00040000  # Left button on XBox controllers and Oculus Remote. Not present on Touch controllers.
+Button_Right     = 0x00080000  # Right button on XBox controllers and Oculus Remote. Not present on Touch controllers.
+Button_Enter     = 0x00100000  # Start on XBox 360 controller. Menu on XBox One controller and Left Touch controller. Should be referred to as the Menu button in user-facing documentation.
+Button_Back      = 0x00200000  # Back on Xbox 360 controller. View button on XBox One controller. Not present on Touch controllers or Oculus Remote.
+Button_VolUp     = 0x00400000  # Volume button on Oculus Remote. Not present on XBox or Touch controllers.
+Button_VolDown   = 0x00800000  # Volume button on Oculus Remote. Not present on XBox or Touch controllers.
+Button_Home      = 0x01000000  # Home button on XBox controllers. Oculus button on Touch controllers and Oculus Remote.
+# Bit mask of all buttons that are for private usage by Oculus
+Button_Private   = Button_VolUp | Button_VolDown | Button_Home
 # Bit mask of all buttons on the right Touch controller
-Button_RMask     = Button_A | Button_B | Button_RThumb | Button_RShoulder,
-Button_X         = 0x00000100
-Button_Y         = 0x00000200
-Button_LThumb    = 0x00000400  
-Button_LShoulder = 0x00000800
+Button_RMask = Button_A | Button_B | Button_RThumb | Button_RShoulder
 # Bit mask of all buttons on the left Touch controller
-Button_LMask     = Button_X | Button_Y | Button_LThumb | Button_LShoulder,
-# Navigation through DPad.
-Button_Up        = 0x00010000
-Button_Down      = 0x00020000
-Button_Left      = 0x00040000
-Button_Right     = 0x00080000
-Button_Enter     = 0x00100000 # Start on XBox controller.
-Button_Back      = 0x00200000 # Back on Xbox controller.
-Button_VolUp     = 0x00400000  # only supported by Remote.
-Button_VolDown   = 0x00800000  # only supported by Remote.
-Button_Home      = 0x01000000  
-Button_Private   = Button_VolUp | Button_VolDown | Button_Home,
+Button_LMask = Button_X | Button_Y | Button_LThumb | Button_LShoulder | Button_Enter
 
 
-# Translated from header file OVR_CAPI.h line 768
+# Translated from header file OVR_CAPI.h line 798
 # Describes touch input types.
 # These values map to capacitive touch values reported ovrInputState::Touch.
 # Some of these values are mapped to button bits for consistency.
@@ -1087,51 +1101,172 @@ Touch = ENUM_TYPE
 Touch_A              = Button_A
 Touch_B              = Button_B
 Touch_RThumb         = Button_RThumb
+Touch_RThumbRest     = 0x00000008
 Touch_RIndexTrigger  = 0x00000010
 # Bit mask of all the button touches on the right controller
-Touch_RButtonMask    = Touch_A | Touch_B | Touch_RThumb | Touch_RIndexTrigger,
+Touch_RButtonMask    = Touch_A | Touch_B | Touch_RThumb | Touch_RThumbRest | Touch_RIndexTrigger
 Touch_X              = Button_X
 Touch_Y              = Button_Y
 Touch_LThumb         = Button_LThumb
+Touch_LThumbRest     = 0x00000800
 Touch_LIndexTrigger  = 0x00001000
 # Bit mask of all the button touches on the left controller
-Touch_LButtonMask    = Touch_X | Touch_Y | Touch_LThumb | Touch_LIndexTrigger,
-# Finger pose state 
+Touch_LButtonMask    = Touch_X | Touch_Y | Touch_LThumb | Touch_LThumbRest | Touch_LIndexTrigger
+# Finger pose state
 # Derived internally based on distance, proximity to sensors and filtering.
 Touch_RIndexPointing = 0x00000020
 Touch_RThumbUp       = 0x00000040
-# Bit mask of all right controller poses
-Touch_RPoseMask      = Touch_RIndexPointing | Touch_RThumbUp,
 Touch_LIndexPointing = 0x00002000
 Touch_LThumbUp       = 0x00004000
+# Bit mask of all right controller poses
+Touch_RPoseMask      = Touch_RIndexPointing | Touch_RThumbUp
 # Bit mask of all left controller poses
-Touch_LPoseMask      = Touch_LIndexPointing | Touch_LThumbUp,
+Touch_LPoseMask      = Touch_LIndexPointing | Touch_LThumbUp
 
 
-# Translated from header file OVR_CAPI.h line 806
+# Translated from header file OVR_CAPI.h line 837
+class TouchHapticsDesc(Structure):
+    """
+    Describes the Touch Haptics engine.
+    Currently, those values will NOT change during a session.
+    """
+    _pack_ = OVR_PTR_SIZE
+    _fields_ = [
+        # Haptics engine frequency/sample-rate, sample time in seconds equals 1.0/sampleRateHz
+        ("SampleRateHz", c_int), 
+        # Size of each Haptics sample, sample value range is [0, 2^(Bytes*8)-1]
+        ("SampleSizeInBytes", c_int), 
+        # Queue size that would guarantee Haptics engine would not starve for data
+        # Make sure size doesn't drop below it for best results
+        ("QueueMinSizeToAvoidStarvation", c_int), 
+        # Minimum, Maximum and Optimal number of samples that can be sent to Haptics through ovr_SubmitControllerVibration
+        ("SubmitMinSamples", c_int), 
+        ("SubmitMaxSamples", c_int), 
+        ("SubmitOptimalSamples", c_int), 
+    ]
+
+    def __repr__(self):
+        return "ovr.TouchHapticsDesc(%s, %s, %s, %s, %s, %s)" % (self.SampleRateHz, self.SampleSizeInBytes, self.QueueMinSizeToAvoidStarvation, self.SubmitMinSamples, self.SubmitMaxSamples, self.SubmitOptimalSamples)
+
+
+# Translated from header file OVR_CAPI.h line 856
 # Specifies which controller is connected; multiple can be connected at once.
 ControllerType = ENUM_TYPE
-ControllerType_None      = 0x00
-ControllerType_LTouch    = 0x01
-ControllerType_RTouch    = 0x02
-ControllerType_Touch     = 0x03
-ControllerType_Remote    = 0x04
-ControllerType_XBox      = 0x10
-ControllerType_Active    = 0xff      #< Operate on or query whichever controller is active.
+ControllerType_None      = 0x0000
+ControllerType_LTouch    = 0x0001
+ControllerType_RTouch    = 0x0002
+ControllerType_Touch     = (ControllerType_LTouch | ControllerType_RTouch)
+ControllerType_Remote    = 0x0004
+ControllerType_XBox      = 0x0010
+ControllerType_Object0   = 0x0100
+ControllerType_Object1   = 0x0200
+ControllerType_Object2   = 0x0400
+ControllerType_Object3   = 0x0800
+ControllerType_Active    = 0xffffffff #< Operate on or query whichever controller is active.
 
 
-# Translated from header file OVR_CAPI.h line 822
+# Translated from header file OVR_CAPI.h line 877
+# Haptics buffer submit mode
+HapticsBufferSubmitMode = ENUM_TYPE
+# Enqueue buffer for later playback
+HapticsBufferSubmit_Enqueue = 0 
+
+
+# Translated from header file OVR_CAPI.h line 884
+class HapticsBuffer(Structure):
+    "Haptics buffer descriptor, contains amplitude samples used for Touch vibration"
+    _fields_ = [
+        # Samples stored in opaque format
+        ("Samples", c_void_p), 
+        # Number of samples
+        ("SamplesCount", c_int), 
+        # How samples are submitted to the hardware
+        ("SubmitMode", HapticsBufferSubmitMode), 
+    ]
+
+    def __repr__(self):
+        return "ovr.HapticsBuffer(%s, %s, %s)" % (self.Samples, self.SamplesCount, self.SubmitMode)
+
+
+# Translated from header file OVR_CAPI.h line 895
+class HapticsPlaybackState(Structure):
+    "State of the Haptics playback for Touch vibration"
+    _fields_ = [
+        # Remaining space available to queue more samples
+        ("RemainingQueueSpace", c_int), 
+        # Number of samples currently queued
+        ("SamplesQueued", c_int), 
+    ]
+
+    def __repr__(self):
+        return "ovr.HapticsPlaybackState(%s, %s)" % (self.RemainingQueueSpace, self.SamplesQueued)
+
+
+# Translated from header file OVR_CAPI.h line 905
+# Position tracked devices
+TrackedDeviceType = ENUM_TYPE
+TrackedDevice_HMD        = 0x0001
+TrackedDevice_LTouch     = 0x0002
+TrackedDevice_RTouch     = 0x0004
+TrackedDevice_Touch      = (TrackedDevice_LTouch| TrackedDevice_RTouch)
+TrackedDevice_Object0    = 0x0010
+TrackedDevice_Object1    = 0x0020
+TrackedDevice_Object2    = 0x0040
+TrackedDevice_Object3    = 0x0080
+TrackedDevice_All        = 0xFFFF
+
+
+# Translated from header file OVR_CAPI.h line 921
+# Boundary types that specified while using the boundary system
+BoundaryType = ENUM_TYPE
+# Outer boundary - closely represents user setup walls
+Boundary_Outer           = 0x0001
+# Play area - safe rectangular area inside outer boundary which can optionally be used to restrict user interactions and motion.
+Boundary_PlayArea        = 0x0100
+
+
+# Translated from header file OVR_CAPI.h line 931
+class BoundaryLookAndFeel(Structure):
+    "Boundary system look and feel"
+    _fields_ = [
+        # Boundary color (alpha channel is ignored)
+        ("Color", Colorf), 
+    ]
+
+    def __repr__(self):
+        return "ovr.BoundaryLookAndFeel(%s)" % (self.Color)
+
+
+# Translated from header file OVR_CAPI.h line 938
+class BoundaryTestResult(Structure):
+    "Provides boundary test information"
+    _fields_ = [
+        # True if the boundary system is being triggered. Note that due to fade in/out effects this may not exactly match visibility.
+        ("IsTriggering", Bool), 
+        # Distance to the closest play area or outer boundary surface.
+        ("ClosestDistance", c_float), 
+        # Closest point on the boundary surface.
+        ("ClosestPoint", Vector3f), 
+        # Unit surface normal of the closest boundary surface.
+        ("ClosestPointNormal", Vector3f), 
+    ]
+
+    def __repr__(self):
+        return "ovr.BoundaryTestResult(%s, %s, %s, %s)" % (self.IsTriggering, self.ClosestDistance, self.ClosestPoint, self.ClosestPointNormal)
+
+
+# Translated from header file OVR_CAPI.h line 954
 # Provides names for the left and right hand array indexes.
 #
 # \see ovrInputState, ovrTrackingState
-# 
+#
 HandType = ENUM_TYPE
 Hand_Left  = 0
 Hand_Right = 1
 Hand_Count = 2
 
 
-# Translated from header file OVR_CAPI.h line 836
+# Translated from header file OVR_CAPI.h line 968
 class InputState(Structure):
     """
     ovrInputState describes the complete controller input state, including Oculus Touch,
@@ -1146,20 +1281,58 @@ class InputState(Structure):
         # Touch values for buttons and sensors as described by ovrTouch.
         ("Touches", c_uint), 
         # Left and right finger trigger values (ovrHand_Left and ovrHand_Right), in the range 0.0 to 1.0f.
+        # Returns 0 if the value would otherwise be less than 0.1176, for ovrControllerType_XBox.
+        # This has been formally named simply "Trigger". We retain the name IndexTrigger for backwards code compatibility.
+        # User-facing documentation should refer to it as the Trigger.
         ("IndexTrigger", c_float * Hand_Count), 
         # Left and right hand trigger values (ovrHand_Left and ovrHand_Right), in the range 0.0 to 1.0f.
+        # This has been formally named "Grip Button". We retain the name HandTrigger for backwards code compatibility.
+        # User-facing documentation should refer to it as the Grip Button or simply Grip.
         ("HandTrigger", c_float * Hand_Count), 
         # Horizontal and vertical thumbstick axis values (ovrHand_Left and ovrHand_Right), in the range -1.0f to 1.0f.
+        # Returns a deadzone (value 0) per each axis if the value on that axis would otherwise have been between -.2746 to +.2746, for ovrControllerType_XBox
         ("Thumbstick", Vector2f * Hand_Count), 
         # The type of the controller this state is for.
         ("ControllerType", ControllerType), 
+        # Left and right finger trigger values (ovrHand_Left and ovrHand_Right), in the range 0.0 to 1.0f.
+        # Does not apply a deadzone.  Only touch applies a filter.
+        # This has been formally named simply "Trigger". We retain the name IndexTrigger for backwards code compatibility.
+        # User-facing documentation should refer to it as the Trigger.
+        # Added in 1.7
+        ("IndexTriggerNoDeadzone", c_float * Hand_Count), 
+        # Left and right hand trigger values (ovrHand_Left and ovrHand_Right), in the range 0.0 to 1.0f.
+        # Does not apply a deadzone. Only touch applies a filter.
+        # This has been formally named "Grip Button". We retain the name HandTrigger for backwards code compatibility.
+        # User-facing documentation should refer to it as the Grip Button or simply Grip.
+        # Added in 1.7
+        ("HandTriggerNoDeadzone", c_float * Hand_Count), 
+        # Horizontal and vertical thumbstick axis values (ovrHand_Left and ovrHand_Right), in the range -1.0f to 1.0f
+        # Does not apply a deadzone or filter.
+        # Added in 1.7
+        ("ThumbstickNoDeadzone", Vector2f * Hand_Count), 
+        # Left and right finger trigger values (ovrHand_Left and ovrHand_Right), in the range 0.0 to 1.0f.
+        # No deadzone or filter
+        # This has been formally named "Grip Button". We retain the name HandTrigger for backwards code compatibility.
+        # User-facing documentation should refer to it as the Grip Button or simply Grip.
+        # Added in 1.11
+        ("IndexTriggerRaw", c_float * Hand_Count), 
+        # Left and right hand trigger values (ovrHand_Left and ovrHand_Right), in the range 0.0 to 1.0f.
+        # No deadzone or filter
+        # This has been formally named "Grip Button". We retain the name HandTrigger for backwards code compatibility.
+        # User-facing documentation should refer to it as the Grip Button or simply Grip.
+        # Added in 1.11
+        ("HandTriggerRaw", c_float * Hand_Count), 
+        # Horizontal and vertical thumbstick axis values (ovrHand_Left and ovrHand_Right), in the range -1.0f to 1.0f
+        # No deadzone or filter
+        # Added in 1.11
+        ("ThumbstickRaw", Vector2f * Hand_Count), 
     ]
 
     def __repr__(self):
-        return "ovr.InputState(%s, %s, %s, %s, %s, %s, %s)" % (self.TimeInSeconds, self.Buttons, self.Touches, self.IndexTrigger, self.HandTrigger, self.Thumbstick, self.ControllerType)
+        return "ovr.InputState(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" % (self.TimeInSeconds, self.Buttons, self.Touches, self.IndexTrigger, self.HandTrigger, self.Thumbstick, self.ControllerType, self.IndexTriggerNoDeadzone, self.HandTriggerNoDeadzone, self.ThumbstickNoDeadzone, self.IndexTriggerRaw, self.HandTriggerRaw, self.ThumbstickRaw)
 
 
-# Translated from header file OVR_CAPI.h line 869
+# Translated from header file OVR_CAPI.h line 1044
 # Initialization flags.
 #
 # \see ovrInitParams, ovr_Initialize
@@ -1169,13 +1342,22 @@ InitFlags = ENUM_TYPE
 # run which can be used to help solve problems in the library and debug application code.
 Init_Debug          = 0x00000001
 # When a version is requested, the LibOVR runtime respects the RequestedMinorVersion
-# field and verifies that the RequestedMinorVersion is supported.
+# field and verifies that the RequestedMinorVersion is supported. Normally when you
+# specify this flag you simply use OVR_MINOR_VERSION for ovrInitParams::RequestedMinorVersion,
+# though you could use a lower version than OVR_MINOR_VERSION to specify previous
+# version behavior.
 Init_RequestVersion = 0x00000004
+# This client will not be visible in the HMD.
+# Typically set by diagnostic or debugging utilities.
+Init_Invisible      = 0x00000010
+# This client will alternate between VR and 2D rendering.
+# Typically set by game engine editors and VR-enabled web browsers.
+Init_MixedRendering = 0x00000020
 # These bits are writable by user code.
 Init_WritableBits   = 0x00ffffff
 
 
-# Translated from header file OVR_CAPI.h line 890
+# Translated from header file OVR_CAPI.h line 1082
 # Logging levels
 #
 # \see ovrInitParams, ovrLogCallback
@@ -1186,7 +1368,7 @@ LogLevel_Info     = 1 #< Info-level log event.
 LogLevel_Error    = 2 #< Error-level log event.
 
 
-# Translated from header file OVR_CAPI.h line 914
+# Translated from header file OVR_CAPI.h line 1106
 class InitParams(Structure):
     """
     Parameters for ovr_Initialize.
@@ -1198,9 +1380,10 @@ class InitParams(Structure):
         # Flags from ovrInitFlags to override default behavior.
         # Use 0 for the defaults.
         ("Flags", c_uint32), 
-        # Requests a specific minimum minor version of the LibOVR runtime.
-        # Flags must include ovrInit_RequestVersion or this will be ignored
-        # and OVR_MINOR_VERSION will be used.
+        # Requests a specific minor version of the LibOVR runtime.
+        # Flags must include ovrInit_RequestVersion or this will be ignored and OVR_MINOR_VERSION
+        # will be used. If you are directly calling the LibOVRRT version of ovr_Initialize
+        # in the LibOVRRT DLL then this must be valid and include ovrInit_RequestVersion.
         ("RequestedMinorVersion", c_uint32), 
         # User-supplied log callback function, which may be called at any time
         # asynchronously from multiple threads until ovr_Shutdown completes.
@@ -1220,7 +1403,7 @@ class InitParams(Structure):
         return "ovr.InitParams(%s, %s, %s, %s, %s)" % (self.Flags, self.RequestedMinorVersion, self.LogCallback, self.UserData, self.ConnectionTimeoutMS)
 
 
-# Translated from header file OVR_CAPI.h line 986
+# Translated from header file OVR_CAPI.h line 1150
 libovr.ovr_Initialize.restype = Result
 libovr.ovr_Initialize.argtypes = [POINTER(InitParams)]
 def initialize(params):
@@ -1228,8 +1411,8 @@ def initialize(params):
     Initializes LibOVR
     
     Initialize LibOVR for application usage. This includes finding and loading the LibOVRRT
-    shared library. No LibOVR API functions, other than ovr_GetLastErrorInfo, can be called
-    unless ovr_Initialize succeeds. A successful call to ovr_Initialize must be eventually
+    shared library. No LibOVR API functions, other than ovr_GetLastErrorInfo and ovr_Detect, can
+    be called unless ovr_Initialize succeeds. A successful call to ovr_Initialize must be eventually
     followed by a call to ovr_Shutdown. ovr_Initialize calls are idempotent.
     Calling ovr_Initialize twice does not require two matching calls to ovr_Shutdown.
     If already initialized, the return value is ovr_Success.
@@ -1243,7 +1426,9 @@ def initialize(params):
             which is off by default).
          -# Standard OS shared library search location(s) (OS-specific).
     
-    \param params Specifies custom initialization options. May be NULL to indicate default options.
+    \param params Specifies custom initialization options. May be NULL to indicate default options when
+           using the CAPI shim. If you are directly calling the LibOVRRT version of ovr_Initialize
+            in the LibOVRRT DLL then this must be valid and include ovrInit_RequestVersion.
     \return Returns an ovrResult indicating success or failure. In the case of failure, use
             ovr_GetLastErrorInfo to get more information. Example failed results include:
         - ovrError_Initialize: Generic initialization error.
@@ -1258,7 +1443,8 @@ def initialize(params):
     
     <b>Example code</b>
         \code{.cpp}
-            ovrResult result = ovr_Initialize(NULL);
+            ovrInitParams initParams = { ovrInit_RequestVersion, OVR_MINOR_VERSION, NULL, 0, 0 };
+            ovrResult result = ovr_Initialize(&initParams);
             if(OVR_FAILURE(result)) {
                 ovrErrorInfo errorInfo;
                 ovr_GetLastErrorInfo(&errorInfo);
@@ -1270,12 +1456,18 @@ def initialize(params):
     
     \see ovr_Shutdown
     """
+    # Beginning with OVR SDK 1.8, we need to specify the library version here
+    if params is None:
+        params = InitParams()
+        params.Flags = Init_RequestVersion
+        params.RequestedMinorVersion = MINOR_VERSION
+        params.ConnectionTimeoutMS = 0
     result = libovr.ovr_Initialize(byref(params))
     _checkResult(result, "initialize")
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1034
+# Translated from header file OVR_CAPI.h line 1201
 libovr.ovr_Shutdown.restype = None
 def shutdown():
     """
@@ -1289,11 +1481,10 @@ def shutdown():
     
     \see ovr_Initialize
     """
-    result = libovr.ovr_Shutdown()
-    return result
+    libovr.ovr_Shutdown()
 
 
-# Translated from header file OVR_CAPI.h line 1046
+# Translated from header file OVR_CAPI.h line 1213
 libovr.ovr_GetLastErrorInfo.restype = None
 libovr.ovr_GetLastErrorInfo.argtypes = [POINTER(ErrorInfo)]
 def getLastErrorInfo():
@@ -1318,7 +1509,7 @@ def getLastErrorInfo():
     return errorInfo
 
 
-# Translated from header file OVR_CAPI.h line 1064
+# Translated from header file OVR_CAPI.h line 1231
 libovr.ovr_GetVersionString.restype = c_char_p
 def getVersionString():
     """
@@ -1339,7 +1530,7 @@ def getVersionString():
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1080
+# Translated from header file OVR_CAPI.h line 1247
 libovr.ovr_TraceMessage.restype = c_int
 libovr.ovr_TraceMessage.argtypes = [c_int, c_char_p]
 def traceMessage(level, message):
@@ -1359,7 +1550,43 @@ def traceMessage(level, message):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1101
+# Translated from header file OVR_CAPI.h line 1261
+libovr.ovr_IdentifyClient.restype = Result
+libovr.ovr_IdentifyClient.argtypes = [c_char_p]
+def identifyClient(identity):
+    """
+    Identify client application info.
+    
+    The string is one or more newline-delimited lines of optional info
+    indicating engine name, engine version, engine plugin name, engine plugin
+    version, engine editor. The order of the lines is not relevant. Individual
+    lines are optional. A newline is not necessary at the end of the last line.
+    Call after ovr_Initialize and before the first call to ovr_Create.
+    Each value is limited to 20 characters. Key names such as 'EngineName:'
+    'EngineVersion:' do not count towards this limit.
+    
+    \param[in] identity Specifies one or more newline-delimited lines of optional info:
+                EngineName: %s\n
+                EngineVersion: %s\n
+                EnginePluginName: %s\n
+                EnginePluginVersion: %s\n
+                EngineEditor: <boolean> ('true' or 'false')\n
+    
+    <b>Example code</b>
+        \code{.cpp}
+        ovr_IdentifyClient("EngineName: Unity\n"
+                           "EngineVersion: 5.3.3\n"
+                           "EnginePluginName: OVRPlugin\n"
+                           "EnginePluginVersion: 1.2.0\n"
+                           "EngineEditor: true");
+        \endcode
+    """
+    result = libovr.ovr_IdentifyClient(identity)
+    _checkResult(result, "identifyClient")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1297
 libovr.ovr_GetHmdDesc.restype = HmdDesc
 libovr.ovr_GetHmdDesc.argtypes = [Session]
 def getHmdDesc(session):
@@ -1372,21 +1599,21 @@ def getHmdDesc(session):
     \param[in] session Specifies an ovrSession previously returned by ovr_Create, else NULL in which
                    case this function detects whether an HMD is present and returns its info if so.
     
-    \return Returns an ovrHmdDesc. If the hmd is NULL and ovrHmdDesc::Type is ovrHmd_None then 
+    \return Returns an ovrHmdDesc. If the hmd is NULL and ovrHmdDesc::Type is ovrHmd_None then
             no HMD is present.
     """
     result = libovr.ovr_GetHmdDesc(session)
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1115
+# Translated from header file OVR_CAPI.h line 1311
 libovr.ovr_GetTrackerCount.restype = c_uint
 libovr.ovr_GetTrackerCount.argtypes = [Session]
 def getTrackerCount(session):
     """
-    Returns the number of sensors. 
+    Returns the number of attached trackers.
     
-    The number of sensors may change at any time, so this function should be called before use 
+    The number of trackers may change at any time, so this function should be called before use
     as opposed to once on startup.
     
     \param[in] session Specifies an ovrSession previously returned by ovr_Create.
@@ -1397,23 +1624,20 @@ def getTrackerCount(session):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1127
+# Translated from header file OVR_CAPI.h line 1323
 libovr.ovr_GetTrackerDesc.restype = TrackerDesc
 libovr.ovr_GetTrackerDesc.argtypes = [Session, c_uint]
 def getTrackerDesc(session, trackerDescIndex):
     """
-    Returns a given sensor description.
-    
-    It's possible that sensor desc [0] may indicate a unconnnected or non-pose tracked sensor, but 
-    sensor desc [1] may be connected.
+    Returns a given attached tracker description.
     
     ovr_Initialize must have first been called in order for this to succeed, otherwise the returned
     trackerDescArray will be zero-initialized. The data returned by this function can change at runtime.
     
     \param[in] session Specifies an ovrSession previously returned by ovr_Create.
     
-    \param[in] trackerDescIndex Specifies a sensor index. The valid indexes are in the range of 0 to 
-               the sensor count returned by ovr_GetTrackerCount.
+    \param[in] trackerDescIndex Specifies a tracker index. The valid indexes are in the range of 0 to
+               the tracker count returned by ovr_GetTrackerCount.
     
     \return Returns ovrTrackerDesc. An empty ovrTrackerDesc will be returned if trackerDescIndex is out of range.
     
@@ -1423,7 +1647,7 @@ def getTrackerDesc(session, trackerDescIndex):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1147
+# Translated from header file OVR_CAPI.h line 1340
 libovr.ovr_Create.restype = Result
 libovr.ovr_Create.argtypes = [POINTER(Session), POINTER(GraphicsLuid)]
 def create():
@@ -1431,15 +1655,15 @@ def create():
     Creates a handle to a VR session.
     
     Upon success the returned ovrSession must be eventually freed with ovr_Destroy when it is no longer needed.
-    A second call to ovr_Create will result in an error return value if the previous Hmd has not been destroyed.
+    A second call to ovr_Create will result in an error return value if the previous session has not been destroyed.
     
     \param[out] pSession Provides a pointer to an ovrSession which will be written to upon success.
-    \param[out] luid Provides a system specific graphics adapter identifier that locates which
+    \param[out] pLuid Provides a system specific graphics adapter identifier that locates which
     graphics adapter has the HMD attached. This must match the adapter used by the application
     or no rendering output will be possible. This is important for stability on multi-adapter systems. An
     application that simply chooses the default adapter will not run reliably on multi-adapter systems.
     \return Returns an ovrResult indicating success or failure. Upon failure
-            the returned pHmd will be NULL.
+            the returned ovrSession will be NULL.
     
     <b>Example code</b>
         \code{.cpp}
@@ -1459,21 +1683,20 @@ def create():
     return pSession, pLuid
 
 
-# Translated from header file OVR_CAPI.h line 1174
+# Translated from header file OVR_CAPI.h line 1367
 libovr.ovr_Destroy.restype = None
 libovr.ovr_Destroy.argtypes = [Session]
 def destroy(session):
     """
-    Destroys the HMD.
+    Destroys the session.
     
     \param[in] session Specifies an ovrSession previously returned by ovr_Create.
     \see ovr_Create
     """
-    result = libovr.ovr_Destroy(session)
-    return result
+    libovr.ovr_Destroy(session)
 
 
-# Translated from header file OVR_CAPI.h line 1182
+# Translated from header file OVR_CAPI.h line 1376
 class SessionStatus(Structure):
     """
     Specifies status information for the current session.
@@ -1485,15 +1708,15 @@ class SessionStatus(Structure):
         ("HmdPresent", Bool),    #< True if an HMD is present.
         ("HmdMounted", Bool),    #< True if the HMD is on the user's head.
         ("DisplayLost", Bool),   #< True if the session is in a display-lost state. See ovr_SubmitFrame.
-        ("ShouldQuit", Bool),    #< True if the application should initiate shutdown.    
-        ("ShouldRecenter", Bool),   #< True if UX has requested re-centering. Must call ovr_ClearShouldRecenterFlag or ovr_RecenterTrackingOrigin.
+        ("ShouldQuit", Bool),    #< True if the application should initiate shutdown.
+        ("ShouldRecenter", Bool),   #< True if UX has requested re-centering. Must call ovr_ClearShouldRecenterFlag, ovr_RecenterTrackingOrigin or ovr_SpecifyTrackingOrigin
     ]
 
     def __repr__(self):
         return "ovr.SessionStatus(%s, %s, %s, %s, %s, %s)" % (self.IsVisible, self.HmdPresent, self.HmdMounted, self.DisplayLost, self.ShouldQuit, self.ShouldRecenter)
 
 
-# Translated from header file OVR_CAPI.h line 1197
+# Translated from header file OVR_CAPI.h line 1392
 libovr.ovr_GetSessionStatus.restype = Result
 libovr.ovr_GetSessionStatus.argtypes = [Session, POINTER(SessionStatus)]
 def getSessionStatus(session):
@@ -1516,7 +1739,7 @@ def getSessionStatus(session):
     return sessionStatus
 
 
-# Translated from header file OVR_CAPI.h line 1228
+# Translated from header file OVR_CAPI.h line 1423
 libovr.ovr_SetTrackingOriginType.restype = Result
 libovr.ovr_SetTrackingOriginType.argtypes = [Session, TrackingOrigin]
 def setTrackingOriginType(session, origin):
@@ -1539,7 +1762,7 @@ def setTrackingOriginType(session, origin):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1243
+# Translated from header file OVR_CAPI.h line 1438
 libovr.ovr_GetTrackingOriginType.restype = TrackingOrigin
 libovr.ovr_GetTrackingOriginType.argtypes = [Session]
 def getTrackingOriginType(session):
@@ -1556,17 +1779,21 @@ def getTrackingOriginType(session):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1253
+# Translated from header file OVR_CAPI.h line 1448
 libovr.ovr_RecenterTrackingOrigin.restype = Result
 libovr.ovr_RecenterTrackingOrigin.argtypes = [Session]
 def recenterTrackingOrigin(session):
     """
     Re-centers the sensor position and orientation.
     
-    This resets the (x,y,z) positional components and the yaw orientation component.
-    The Roll and pitch orientation components are always determined by gravity and cannot
+    This resets the (x,y,z) positional components and the yaw orientation component of the
+    tracking space for the HMD and controllers using the HMD's current tracking pose.
+    If the caller requires some tweaks on top of the HMD's current tracking pose, consider using
+    ovr_SpecifyTrackingOrigin instead.
+    
+    The roll and pitch orientation components are always determined by gravity and cannot
     be redefined. All future tracking will report values relative to this new reference position.
-    If you are using ovrTrackerPoses then you will need to call ovr_GetTrackerPose after 
+    If you are using ovrTrackerPoses then you will need to call ovr_GetTrackerPose after
     this, because the sensor position(s) will change as a result of this.
     
     The headset cannot be facing vertically upward or downward but rather must be roughly
@@ -1583,29 +1810,80 @@ def recenterTrackingOrigin(session):
         - ovrError_InvalidHeadsetOrientation: The headset was facing an invalid direction when
           attempting recentering, such as facing vertically.
     
-    \see ovrTrackingOrigin, ovr_GetTrackerPose
+    \see ovrTrackingOrigin, ovr_GetTrackerPose, ovr_SpecifyTrackingOrigin
     """
     result = libovr.ovr_RecenterTrackingOrigin(session)
     _checkResult(result, "recenterTrackingOrigin")
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1280
+# Translated from header file OVR_CAPI.h line 1478
+libovr.ovr_SpecifyTrackingOrigin.restype = Result
+libovr.ovr_SpecifyTrackingOrigin.argtypes = [Session, Posef]
+def specifyTrackingOrigin(session, originPose):
+    """
+    Allows manually tweaking the sensor position and orientation.
+    
+    This function is similar to ovr_RecenterTrackingOrigin in that it modifies the
+    (x,y,z) positional components and the yaw orientation component of the tracking space for
+    the HMD and controllers.
+    
+    While ovr_RecenterTrackingOrigin resets the tracking origin in reference to the HMD's
+    current pose, ovr_SpecifyTrackingOrigin allows the caller to explicitly specify a transform
+    for the tracking origin. This transform is expected to be an offset to the most recent
+    recentered origin, so calling this function repeatedly with the same originPose will keep
+    nudging the recentered origin in that direction.
+    
+    There are several use cases for this function. For example, if the application decides to
+    limit the yaw, or translation of the recentered pose instead of directly using the HMD pose
+    the application can query the current tracking state via ovr_GetTrackingState, and apply
+    some limitations to the HMD pose because feeding this pose back into this function.
+    Similarly, this can be used to "adjust the seating position" incrementally in apps that
+    feature seated experiences such as cockpit-based games.
+    
+    This function can emulate ovr_RecenterTrackingOrigin as such:
+        ovrTrackingState ts = ovr_GetTrackingState(session, 0.0, ovrFalse);
+        ovr_SpecifyTrackingOrigin(session, ts.HeadPose.ThePose);
+    
+    The roll and pitch orientation components are determined by gravity and cannot be redefined.
+    If you are using ovrTrackerPoses then you will need to call ovr_GetTrackerPose after
+    this, because the sensor position(s) will change as a result of this.
+    
+    For more info, see the notes on each ovrTrackingOrigin enumeration to understand how
+    recenter will vary slightly in its behavior based on the current ovrTrackingOrigin setting.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] originPose Specifies a pose that will be used to transform the current tracking origin.
+    
+    \return Returns an ovrResult indicating success or failure. In the case of failure, use
+            ovr_GetLastErrorInfo to get more information. Return values include but aren't limited to:
+        - ovrSuccess: Completed successfully.
+        - ovrError_InvalidParameter: The heading direction in originPose was invalid,
+            such as facing vertically. This can happen if the caller is directly feeding the pose
+            of a position-tracked device such as an HMD or controller into this function.
+    
+    \see ovrTrackingOrigin, ovr_GetTrackerPose, ovr_RecenterTrackingOrigin
+    """
+    result = libovr.ovr_SpecifyTrackingOrigin(session, originPose)
+    _checkResult(result, "specifyTrackingOrigin")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1523
 libovr.ovr_ClearShouldRecenterFlag.restype = None
 libovr.ovr_ClearShouldRecenterFlag.argtypes = [Session]
 def clearShouldRecenterFlag(session):
     """
     Clears the ShouldRecenter status bit in ovrSessionStatus.
     
-    Clears the ShouldRecenter status bit in ovrSessionStatus, allowing further recenter 
-    requests to be detected. Since this is automatically done by ovr_RecenterTrackingOrigin,
-    this is only needs to be called when application is doing its own re-centering.
+    Clears the ShouldRecenter status bit in ovrSessionStatus, allowing further recenter requests to be
+    detected. Since this is automatically done by ovr_RecenterTrackingOrigin and ovr_SpecifyTrackingOrigin,
+    this function only needs to be called when application is doing its own re-centering logic.
     """
-    result = libovr.ovr_ClearShouldRecenterFlag(session)
-    return result
+    libovr.ovr_ClearShouldRecenterFlag(session)
 
 
-# Translated from header file OVR_CAPI.h line 1288
+# Translated from header file OVR_CAPI.h line 1531
 libovr.ovr_GetTrackingState.restype = TrackingState
 libovr.ovr_GetTrackingState.argtypes = [Session, c_double, Bool]
 def getTrackingState(session, absTime, latencyMarker):
@@ -1623,7 +1901,7 @@ def getTrackingState(session, absTime, latencyMarker):
                ovrTrackingState value. Use 0 to request the most recent tracking state.
     \param[in] latencyMarker Specifies that this call is the point in time where
                the "App-to-Mid-Photon" latency timer starts from. If a given ovrLayer
-               provides "SensorSampleTimestamp", that will override the value stored here.
+               provides "SensorSampleTime", that will override the value stored here.
     \return Returns the ovrTrackingState that is predicted for the given absTime.
     
     \see ovrTrackingState, ovr_GetEyePoses, ovr_GetTimeInSeconds
@@ -1632,15 +1910,15 @@ def getTrackingState(session, absTime, latencyMarker):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1310
+# Translated from header file OVR_CAPI.h line 1554
 libovr.ovr_GetTrackerPose.restype = TrackerPose
 libovr.ovr_GetTrackerPose.argtypes = [Session, c_uint]
 def getTrackerPose(session, trackerPoseIndex):
     """
-    Returns the ovrTrackerPose for the given sensor.
+    Returns the ovrTrackerPose for the given attached tracker.
     
     \param[in] session Specifies an ovrSession previously returned by ovr_Create.
-    \param[in] trackerPoseIndex Index of the sensor being requested.
+    \param[in] trackerPoseIndex Index of the tracker being requested.
     
     \return Returns the requested ovrTrackerPose. An empty ovrTrackerPose will be returned if trackerPoseIndex is out of range.
     
@@ -1650,7 +1928,7 @@ def getTrackerPose(session, trackerPoseIndex):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1323
+# Translated from header file OVR_CAPI.h line 1567
 libovr.ovr_GetInputState.restype = Result
 libovr.ovr_GetInputState.argtypes = [Session, ControllerType, POINTER(InputState)]
 def getInputState(session, controllerType):
@@ -1669,7 +1947,7 @@ def getInputState(session, controllerType):
     return inputState
 
 
-# Translated from header file OVR_CAPI.h line 1334
+# Translated from header file OVR_CAPI.h line 1578
 libovr.ovr_GetConnectedControllerTypes.restype = c_uint
 libovr.ovr_GetConnectedControllerTypes.argtypes = [Session]
 def getConnectedControllerTypes(session):
@@ -1684,34 +1962,262 @@ def getConnectedControllerTypes(session):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1343
+# Translated from header file OVR_CAPI.h line 1586
+libovr.ovr_GetTouchHapticsDesc.restype = TouchHapticsDesc
+libovr.ovr_GetTouchHapticsDesc.argtypes = [Session, ControllerType]
+def getTouchHapticsDesc(session, controllerType):
+    """
+    Gets information about Haptics engine for the specified Touch controller.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] controllerType The controller to retrieve the information from.
+    
+    \return Returns an ovrTouchHapticsDesc.
+    """
+    result = libovr.ovr_GetTouchHapticsDesc(session, controllerType)
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1595
 libovr.ovr_SetControllerVibration.restype = Result
 libovr.ovr_SetControllerVibration.argtypes = [Session, ControllerType, c_float, c_float]
 def setControllerVibration(session, controllerType, frequency, amplitude):
     """
-    Turns on vibration of the given controller.
+    Sets constant vibration (with specified frequency and amplitude) to a controller.
+    Note: ovr_SetControllerVibration cannot be used interchangeably with ovr_SubmitControllerVibration.
     
-    To disable vibration, call ovr_SetControllerVibration with an amplitude of 0.
-    Vibration automatically stops after a nominal amount of time, so if you want vibration 
-    to be continuous over multiple seconds then you need to call this function periodically.
+    This method should be called periodically, vibration lasts for a maximum of 2.5 seconds.
     
     \param[in] session Specifies an ovrSession previously returned by ovr_Create.
-    \param[in] controllerType Specifies the controller to apply the vibration to.
-    \param[in] frequency Specifies a vibration frequency in the range of 0.0 to 1.0. 
-               Currently the only valid values are 0.0, 0.5, and 1.0 and other values will
-               be clamped to one of these.
-    \param[in] amplitude Specifies a vibration amplitude in the range of 0.0 to 1.0.
-    
-    \return Returns ovrSuccess upon success.
-    
-    \see ovrControllerType
+    \param[in] controllerType The controller to set the vibration to.
+    \param[in] frequency Vibration frequency. Supported values are: 0.0 (disabled), 0.5 and 1.0. Non valid values will be clamped.
+    \param[in] amplitude Vibration amplitude in the [0.0, 1.0] range.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: The call succeeded and a result was returned.
+        - ovrSuccess_DeviceUnavailable: The call succeeded but the device referred to by controllerType is not available.
     """
     result = libovr.ovr_SetControllerVibration(session, controllerType, frequency, amplitude)
     _checkResult(result, "setControllerVibration")
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1380
+# Translated from header file OVR_CAPI.h line 1611
+libovr.ovr_SubmitControllerVibration.restype = Result
+libovr.ovr_SubmitControllerVibration.argtypes = [Session, ControllerType, POINTER(HapticsBuffer)]
+def submitControllerVibration(session, controllerType, buffer_):
+    """
+    Submits a Haptics buffer (used for vibration) to Touch (only) controllers.
+    Note: ovr_SubmitControllerVibration cannot be used interchangeably with ovr_SetControllerVibration.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] controllerType Controller where the Haptics buffer will be played.
+    \param[in] buffer Haptics buffer containing amplitude samples to be played.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: The call succeeded and a result was returned.
+        - ovrSuccess_DeviceUnavailable: The call succeeded but the device referred to by controllerType is not available.
+    
+    \see ovrHapticsBuffer
+    """
+    result = libovr.ovr_SubmitControllerVibration(session, controllerType, byref(buffer_))
+    _checkResult(result, "submitControllerVibration")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1626
+libovr.ovr_GetControllerVibrationState.restype = Result
+libovr.ovr_GetControllerVibrationState.argtypes = [Session, ControllerType, POINTER(HapticsPlaybackState)]
+def getControllerVibrationState(session, controllerType, outState):
+    """
+    Gets the Haptics engine playback state of a specific Touch controller.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] controllerType Controller where the Haptics buffer wil be played.
+    \param[in] outState State of the haptics engine.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: The call succeeded and a result was returned.
+        - ovrSuccess_DeviceUnavailable: The call succeeded but the device referred to by controllerType is not available.
+    
+    \see ovrHapticsPlaybackState
+    """
+    result = libovr.ovr_GetControllerVibrationState(session, controllerType, byref(outState))
+    _checkResult(result, "getControllerVibrationState")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1641
+libovr.ovr_TestBoundary.restype = Result
+libovr.ovr_TestBoundary.argtypes = [Session, TrackedDeviceType, BoundaryType, POINTER(BoundaryTestResult)]
+def testBoundary(session, deviceBitmask, boundaryType):
+    """
+    Tests collision/proximity of position tracked devices (e.g. HMD and/or Touch) against the Boundary System.
+    Note: this method is similar to ovr_BoundaryTestPoint but can be more precise as it may take into account device acceleration/momentum.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] deviceBitmask Bitmask of one or more tracked devices to test.
+    \param[in] boundaryType Must be either ovrBoundary_Outer or ovrBoundary_PlayArea.
+    \param[out] outTestResult Result of collision/proximity test, contains information such as distance and closest point.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: The call succeeded and a result was returned.
+        - ovrSuccess_BoundaryInvalid: The call succeeded but the result is not a valid boundary due to not being set up.
+        - ovrSuccess_DeviceUnavailable: The call succeeded but the device referred to by deviceBitmask is not available.
+    
+    \see ovrBoundaryTestResult
+    """
+    outTestResult = BoundaryTestResult()
+    result = libovr.ovr_TestBoundary(session, deviceBitmask, boundaryType, byref(outTestResult))
+    _checkResult(result, "testBoundary")
+    return outTestResult
+
+
+# Translated from header file OVR_CAPI.h line 1659
+libovr.ovr_TestBoundaryPoint.restype = Result
+libovr.ovr_TestBoundaryPoint.argtypes = [Session, POINTER(Vector3f), BoundaryType, POINTER(BoundaryTestResult)]
+def testBoundaryPoint(session, point, singleBoundaryType):
+    """
+    Tests collision/proximity of a 3D point against the Boundary System.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] point 3D point to test.
+    \param[in] singleBoundaryType Must be either ovrBoundary_Outer or ovrBoundary_PlayArea to test against
+    \param[out] outTestResult Result of collision/proximity test, contains information such as distance and closest point.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: The call succeeded and a result was returned.
+        - ovrSuccess_BoundaryInvalid: The call succeeded but the result is not a valid boundary due to not being set up.
+    
+    \see ovrBoundaryTestResult
+    """
+    outTestResult = BoundaryTestResult()
+    result = libovr.ovr_TestBoundaryPoint(session, byref(point), singleBoundaryType, byref(outTestResult))
+    _checkResult(result, "testBoundaryPoint")
+    return outTestResult
+
+
+# Translated from header file OVR_CAPI.h line 1675
+libovr.ovr_SetBoundaryLookAndFeel.restype = Result
+libovr.ovr_SetBoundaryLookAndFeel.argtypes = [Session, POINTER(BoundaryLookAndFeel)]
+def setBoundaryLookAndFeel(session, lookAndFeel):
+    """
+    Sets the look and feel of the Boundary System.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] lookAndFeel Look and feel parameters.
+    \return Returns ovrSuccess upon success.
+    \see ovrBoundaryLookAndFeel
+    """
+    result = libovr.ovr_SetBoundaryLookAndFeel(session, byref(lookAndFeel))
+    _checkResult(result, "setBoundaryLookAndFeel")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1684
+libovr.ovr_ResetBoundaryLookAndFeel.restype = Result
+libovr.ovr_ResetBoundaryLookAndFeel.argtypes = [Session]
+def resetBoundaryLookAndFeel(session):
+    """
+    Resets the look and feel of the Boundary System to its default state.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \return Returns ovrSuccess upon success.
+    \see ovrBoundaryLookAndFeel
+    """
+    result = libovr.ovr_ResetBoundaryLookAndFeel(session)
+    _checkResult(result, "resetBoundaryLookAndFeel")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1692
+libovr.ovr_GetBoundaryGeometry.restype = Result
+libovr.ovr_GetBoundaryGeometry.argtypes = [Session, BoundaryType, POINTER(Vector3f), POINTER(c_int)]
+def getBoundaryGeometry(session, boundaryType):
+    """
+    Gets the geometry of the Boundary System's "play area" or "outer boundary" as 3D floor points.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] boundaryType Must be either ovrBoundary_Outer or ovrBoundary_PlayArea.
+    \param[out] outFloorPoints Array of 3D points (in clockwise order) defining the boundary at floor height (can be NULL to retrieve only the number of points).
+    \param[out] outFloorPointsCount Number of 3D points returned in the array.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: The call succeeded and a result was returned.
+        - ovrSuccess_BoundaryInvalid: The call succeeded but the result is not a valid boundary due to not being set up.
+    """
+    outFloorPoints = Vector3f()
+    outFloorPointsCount = c_int()
+    result = libovr.ovr_GetBoundaryGeometry(session, boundaryType, byref(outFloorPoints), byref(outFloorPointsCount))
+    _checkResult(result, "getBoundaryGeometry")
+    return outFloorPoints, outFloorPointsCount
+
+
+# Translated from header file OVR_CAPI.h line 1705
+libovr.ovr_GetBoundaryDimensions.restype = Result
+libovr.ovr_GetBoundaryDimensions.argtypes = [Session, BoundaryType, POINTER(Vector3f)]
+def getBoundaryDimensions(session, boundaryType):
+    """
+    Gets the dimension of the Boundary System's "play area" or "outer boundary".
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[in] boundaryType Must be either ovrBoundary_Outer or ovrBoundary_PlayArea.
+    \param[out] outDimensions Dimensions of the axis aligned bounding box that encloses the area in meters (width, height and length).
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: The call succeeded and a result was returned.
+        - ovrSuccess_BoundaryInvalid: The call succeeded but the result is not a valid boundary due to not being set up.
+    """
+    outDimensions = Vector3f()
+    result = libovr.ovr_GetBoundaryDimensions(session, boundaryType, byref(outDimensions))
+    _checkResult(result, "getBoundaryDimensions")
+    return outDimensions
+
+
+# Translated from header file OVR_CAPI.h line 1717
+libovr.ovr_GetBoundaryVisible.restype = Result
+libovr.ovr_GetBoundaryVisible.argtypes = [Session, POINTER(Bool)]
+def getBoundaryVisible(session):
+    """
+    Returns if the boundary is currently visible.
+    Note: visibility is false if the user has turned off boundaries, otherwise, it's true if the app has requested 
+    boundaries to be visible or if any tracked device is currently triggering it. This may not exactly match rendering 
+    due to fade-in and fade-out effects.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[out] outIsVisible ovrTrue, if the boundary is visible.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success. Return values include but aren't limited to:
+        - ovrSuccess: Result was successful and a result was returned.
+        - ovrSuccess_BoundaryInvalid: The call succeeded but the result is not a valid boundary due to not being set up.
+    """
+    outIsVisible = Bool()
+    result = libovr.ovr_GetBoundaryVisible(session, byref(outIsVisible))
+    _checkResult(result, "getBoundaryVisible")
+    return outIsVisible
+
+
+# Translated from header file OVR_CAPI.h line 1736
+libovr.ovr_RequestBoundaryVisible.restype = Result
+libovr.ovr_RequestBoundaryVisible.argtypes = [Session, Bool]
+def requestBoundaryVisible(session, visible):
+    """
+    \return Returns ovrSuccess upon success.
+    """
+    result = libovr.ovr_RequestBoundaryVisible(session, toOvrBool(visible))
+    _checkResult(result, "requestBoundaryVisible")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 1750
+#  Specifies the maximum number of layers supported by ovr_SubmitFrame.
+#
+#  /see ovr_SubmitFrame
+#
+MaxLayerCount = 16
+
+
+# Translated from header file OVR_CAPI.h line 1758
 # Describes layer types that can be passed to ovr_SubmitFrame.
 # Each layer type has an associated struct, such as ovrLayerEyeFov.
 #
@@ -1719,13 +2225,13 @@ def setControllerVibration(session, controllerType, frequency, amplitude):
 #
 LayerType = ENUM_TYPE
 LayerType_Disabled    = 0         #< Layer is disabled.
-LayerType_EyeFov      = 1         #< Described by ovrLayerEyeFov.
-LayerType_Quad        = 3         #< Described by ovrLayerQuad. Previously called ovrLayerType_QuadInWorld.
+LayerType_EyeFov      = 1         #< Described by LayerEyeFov.
+LayerType_Quad        = 3         #< Described by LayerQuad. Previously called LayerType_QuadInWorld.
 # enum 4 used to be ovrLayerType_QuadHeadLocked. Instead, use ovrLayerType_Quad with ovrLayerFlag_HeadLocked.
-LayerType_EyeMatrix   = 5         #< Described by ovrLayerEyeMatrix.
+LayerType_EyeMatrix   = 5         #< Described by LayerEyeMatrix.
 
 
-# Translated from header file OVR_CAPI.h line 1396
+# Translated from header file OVR_CAPI.h line 1774
 # Identifies flags used by ovrLayerHeader and which are passed to ovr_SubmitFrame.
 #
 # \see ovrLayerHeader
@@ -1748,7 +2254,7 @@ LayerFlag_TextureOriginAtBottomLeft = 0x02
 LayerFlag_HeadLocked                = 0x04
 
 
-# Translated from header file OVR_CAPI.h line 1423
+# Translated from header file OVR_CAPI.h line 1801
 class LayerHeader(Structure):
     """
     Defines properties shared by all ovrLayer structs, such as ovrLayerEyeFov.
@@ -1768,7 +2274,7 @@ class LayerHeader(Structure):
         return "ovr.LayerHeader(%s, %s)" % (self.Type, self.Flags)
 
 
-# Translated from header file OVR_CAPI.h line 1437
+# Translated from header file OVR_CAPI.h line 1815
 class LayerEyeFov(Structure):
     """
     Describes a layer that specifies a monoscopic or stereoscopic view.
@@ -1812,7 +2318,7 @@ class LayerEyeFov(Structure):
         return "ovr.LayerEyeFov(%s, %s, %s, %s, %s, %s)" % (self.Header, self.ColorTexture, self.Viewport, self.Fov, self.RenderPose, self.SensorSampleTime)
 
 
-# Translated from header file OVR_CAPI.h line 1483
+# Translated from header file OVR_CAPI.h line 1861
 class LayerEyeMatrix(Structure):
     """
     Describes a layer that specifies a monoscopic or stereoscopic view.
@@ -1863,7 +2369,7 @@ class LayerEyeMatrix(Structure):
         return "ovr.LayerEyeMatrix(%s, %s, %s, %s, %s, %s)" % (self.Header, self.ColorTexture, self.Viewport, self.RenderPose, self.Matrix, self.SensorSampleTime)
 
 
-# Translated from header file OVR_CAPI.h line 1537
+# Translated from header file OVR_CAPI.h line 1915
 class LayerQuad(Structure):
     """
     Describes a layer of Quad type, which is a single quad in world or viewer space.
@@ -1901,7 +2407,7 @@ class LayerQuad(Structure):
         return "ovr.LayerQuad(%s, %s, %s, %s, %s)" % (self.Header, self.ColorTexture, self.Viewport, self.QuadPoseCenter, self.QuadSize)
 
 
-# Translated from header file OVR_CAPI.h line 1576
+# Translated from header file OVR_CAPI.h line 1954
 class Layer_Union(Union):
     """
     Union that combines ovrLayer types in a way that allows them
@@ -1917,7 +2423,7 @@ class Layer_Union(Union):
         return "ovr.Layer_Union(%s, %s, %s)" % (self.Header, self.EyeFov, self.Quad)
 
 
-# Translated from header file OVR_CAPI.h line 1605
+# Translated from header file OVR_CAPI.h line 1983
 libovr.ovr_GetTextureSwapChainLength.restype = Result
 libovr.ovr_GetTextureSwapChainLength.argtypes = [Session, TextureSwapChain, POINTER(c_int)]
 def getTextureSwapChainLength(session, chain):
@@ -1928,7 +2434,7 @@ def getTextureSwapChainLength(session, chain):
     \param[in]  chain Specifies the ovrTextureSwapChain for which the length should be retrieved.
     \param[out] out_Length Returns the number of buffers in the specified chain.
     
-    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error. 
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error.
     
     \see ovr_CreateTextureSwapChainDX, ovr_CreateTextureSwapChainGL
     """
@@ -1938,7 +2444,7 @@ def getTextureSwapChainLength(session, chain):
     return out_Length
 
 
-# Translated from header file OVR_CAPI.h line 1617
+# Translated from header file OVR_CAPI.h line 1995
 libovr.ovr_GetTextureSwapChainCurrentIndex.restype = Result
 libovr.ovr_GetTextureSwapChainCurrentIndex.argtypes = [Session, TextureSwapChain, POINTER(c_int)]
 def getTextureSwapChainCurrentIndex(session, chain):
@@ -1949,7 +2455,7 @@ def getTextureSwapChainCurrentIndex(session, chain):
     \param[in]  chain Specifies the ovrTextureSwapChain for which the index should be retrieved.
     \param[out] out_Index Returns the current (free) index in specified chain.
     
-    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error. 
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error.
     
     \see ovr_CreateTextureSwapChainDX, ovr_CreateTextureSwapChainGL
     """
@@ -1959,7 +2465,7 @@ def getTextureSwapChainCurrentIndex(session, chain):
     return out_Index
 
 
-# Translated from header file OVR_CAPI.h line 1629
+# Translated from header file OVR_CAPI.h line 2007
 libovr.ovr_GetTextureSwapChainDesc.restype = Result
 libovr.ovr_GetTextureSwapChainDesc.argtypes = [Session, TextureSwapChain, POINTER(TextureSwapChainDesc)]
 def getTextureSwapChainDesc(session, chain):
@@ -1970,7 +2476,7 @@ def getTextureSwapChainDesc(session, chain):
     \param[in]  chain Specifies the ovrTextureSwapChain for which the description should be retrieved.
     \param[out] out_Desc Returns the description of the specified chain.
     
-    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error. 
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error.
     
     \see ovr_CreateTextureSwapChainDX, ovr_CreateTextureSwapChainGL
     """
@@ -1980,7 +2486,7 @@ def getTextureSwapChainDesc(session, chain):
     return out_Desc
 
 
-# Translated from header file OVR_CAPI.h line 1641
+# Translated from header file OVR_CAPI.h line 2019
 libovr.ovr_CommitTextureSwapChain.restype = Result
 libovr.ovr_CommitTextureSwapChain.argtypes = [Session, TextureSwapChain]
 def commitTextureSwapChain(session, chain):
@@ -1996,7 +2502,7 @@ def commitTextureSwapChain(session, chain):
     it will synchronize with the app's graphics context and pick up the submitted index, opening up
     room in the swap chain for further commits.
     
-    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error. 
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error.
             Failures include but aren't limited to:
         - ovrError_TextureSwapChainFull: ovr_CommitTextureSwapChain was called too many times on a texture swapchain without calling submit to use the chain.
     
@@ -2007,7 +2513,7 @@ def commitTextureSwapChain(session, chain):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1660
+# Translated from header file OVR_CAPI.h line 2038
 libovr.ovr_DestroyTextureSwapChain.restype = None
 libovr.ovr_DestroyTextureSwapChain.argtypes = [Session, TextureSwapChain]
 def destroyTextureSwapChain(session, chain):
@@ -2019,11 +2525,10 @@ def destroyTextureSwapChain(session, chain):
     
     \see ovr_CreateTextureSwapChainDX, ovr_CreateTextureSwapChainGL
     """
-    result = libovr.ovr_DestroyTextureSwapChain(session, chain)
-    return result
+    libovr.ovr_DestroyTextureSwapChain(session, chain)
 
 
-# Translated from header file OVR_CAPI.h line 1674
+# Translated from header file OVR_CAPI.h line 2052
 libovr.ovr_DestroyMirrorTexture.restype = None
 libovr.ovr_DestroyMirrorTexture.argtypes = [Session, MirrorTexture]
 def destroyMirrorTexture(session, mirrorTexture):
@@ -2035,11 +2540,10 @@ def destroyMirrorTexture(session, mirrorTexture):
     
     \see ovr_CreateMirrorTextureDX, ovr_CreateMirrorTextureGL
     """
-    result = libovr.ovr_DestroyMirrorTexture(session, mirrorTexture)
-    return result
+    libovr.ovr_DestroyMirrorTexture(session, mirrorTexture)
 
 
-# Translated from header file OVR_CAPI.h line 1684
+# Translated from header file OVR_CAPI.h line 2062
 libovr.ovr_GetFovTextureSize.restype = Sizei
 libovr.ovr_GetFovTextureSize.argtypes = [Session, EyeType, FovPort, c_float]
 def getFovTextureSize(session, eye, fov, pixelsPerDisplayPixel):
@@ -2058,13 +2562,21 @@ def getFovTextureSize(session, eye, fov, pixelsPerDisplayPixel):
     \param[in] pixelsPerDisplayPixel Specifies the ratio of the number of render target pixels
                to display pixels at the center of distortion. 1.0 is the default value. Lower
                values can improve performance, higher values give improved quality.
+    
+    <b>Example code</b>
+        \code{.cpp}
+            ovrHmdDesc hmdDesc = ovr_GetHmdDesc(session);
+            ovrSizei eyeSizeLeft  = ovr_GetFovTextureSize(session, ovrEye_Left,  hmdDesc.DefaultEyeFov[ovrEye_Left],  1.0f);
+            ovrSizei eyeSizeRight = ovr_GetFovTextureSize(session, ovrEye_Right, hmdDesc.DefaultEyeFov[ovrEye_Right], 1.0f);
+        \endcode
+    
     \return Returns the texture width and height size.
     """
     result = libovr.ovr_GetFovTextureSize(session, eye, fov, pixelsPerDisplayPixel)
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1703
+# Translated from header file OVR_CAPI.h line 2089
 libovr.ovr_GetRenderDesc.restype = EyeRenderDesc
 libovr.ovr_GetRenderDesc.argtypes = [Session, EyeType, FovPort]
 def getRenderDesc(session, eyeType, fov):
@@ -2084,7 +2596,7 @@ def getRenderDesc(session, eyeType, fov):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1717
+# Translated from header file OVR_CAPI.h line 2103
 libovr.ovr_SubmitFrame.restype = Result
 libovr.ovr_SubmitFrame.argtypes = [Session, c_longlong, POINTER(ViewScaleDesc), POINTER(POINTER(LayerHeader)), c_uint]
 def submitFrame(session, frameIndex, viewScaleDesc, layerPtrList, layerCount):
@@ -2129,7 +2641,7 @@ def submitFrame(session, frameIndex, viewScaleDesc, layerPtrList, layerCount):
             ovrLayerQuad    layer1;
               ...
             ovrLayerHeader* layers[2] = { &layer0.Header, &layer1.Header };
-            ovrResult result = ovr_SubmitFrame(hmd, frameIndex, nullptr, layers, 2);
+            ovrResult result = ovr_SubmitFrame(session, frameIndex, nullptr, layers, 2);
         \endcode
     
     \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
@@ -2138,16 +2650,18 @@ def submitFrame(session, frameIndex, viewScaleDesc, layerPtrList, layerCount):
         - ovrSuccess_NotVisible: rendering completed successfully but was not displayed on the HMD,
           usually because another application currently has ownership of the HMD. Applications receiving
           this result should stop rendering new content, but continue to call ovr_SubmitFrame periodically
-          until it returns a value other than ovrSuccess_NotVisible.
+          until it returns a value other than ovrSuccess_NotVisible. Applications should not loop on
+          calls to ovr_SubmitFrame in order to detect visibility; instead ovr_GetSessionStatus should be used.
+          Similarly, appliations should not call ovr_SubmitFrame with zero layers to detect visibility.
         - ovrError_DisplayLost: The session has become invalid (such as due to a device removal)
           and the shared resources need to be released (ovr_DestroyTextureSwapChain), the session needs to
           destroyed (ovr_Destroy) and recreated (ovr_Create), and new resources need to be created
           (ovr_CreateTextureSwapChainXXX). The application's existing private graphics resources do not
           need to be recreated unless the new ovr_Create call returns a different GraphicsLuid.
-        - ovrError_TextureSwapChainInvalid: The ovrTextureSwapChain is in an incomplete or inconsistent state. 
+        - ovrError_TextureSwapChainInvalid: The ovrTextureSwapChain is in an incomplete or inconsistent state.
           Ensure ovr_CommitTextureSwapChain was called at least once first.
     
-    \see ovr_GetPredictedDisplayTime, ovrViewScaleDesc, ovrLayerHeader
+    \see ovr_GetPredictedDisplayTime, ovrViewScaleDesc, ovrLayerHeader, ovr_GetSessionStatus
     """
     layerPtrList = (POINTER(LayerHeader) * len(layerPtrList))(*[ctypes.pointer(i) for i in layerPtrList])
     result = libovr.ovr_SubmitFrame(session, frameIndex, byref(viewScaleDesc), byref(layerPtrList), layerCount)
@@ -2155,19 +2669,210 @@ def submitFrame(session, frameIndex, viewScaleDesc, layerPtrList, layerCount):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1790
+# Translated from header file OVR_CAPI.h line 2177
+class PerfStatsPerCompositorFrame(Structure):
+    """
+    
+    Contains the performance stats for a given SDK compositor frame
+    
+    All of the int fields can be reset via the ovr_ResetPerfStats call.
+    """
+    _pack_ = 4
+    _fields_ = [
+        #
+        # Vsync Frame Index - increments with each HMD vertical synchronization signal (i.e. vsync or refresh rate)
+        # If the compositor drops a frame, expect this value to increment more than 1 at a time.
+        #
+        ("HmdVsyncIndex", c_int), 
+        #
+        # Application stats
+        #
+        # Index that increments with each successive ovr_SubmitFrame call
+        ("AppFrameIndex", c_int), 
+        # If the app fails to call ovr_SubmitFrame on time, then expect this value to increment with each missed frame
+        ("AppDroppedFrameCount", c_int), 
+        # Motion-to-photon latency for the application
+        # This value is calculated by either using the SensorSampleTime provided for the ovrLayerEyeFov or if that
+        # is not available, then the call to ovr_GetTrackingState which has latencyMarker set to ovrTrue
+        ("AppMotionToPhotonLatency", c_float), 
+        # Amount of queue-ahead in seconds provided to the app based on performance and overlap of CPU & GPU utilization
+        # A value of 0.0 would mean the CPU & GPU workload is being completed in 1 frame's worth of time, while
+        # 11 ms (on the CV1) of queue ahead would indicate that the app's CPU workload for the next frame is
+        # overlapping the app's GPU workload for the current frame.
+        ("AppQueueAheadTime", c_float), 
+        # Amount of time in seconds spent on the CPU by the app's render-thread that calls ovr_SubmitFrame
+        # Measured as elapsed time between from when app regains control from ovr_SubmitFrame to the next time the app
+        # calls ovr_SubmitFrame.
+        ("AppCpuElapsedTime", c_float), 
+        # Amount of time in seconds spent on the GPU by the app
+        # Measured as elapsed time between each ovr_SubmitFrame call using GPU timing queries.
+        ("AppGpuElapsedTime", c_float), 
+        #
+        # SDK Compositor stats
+        #
+        # Index that increments each time the SDK compositor completes a distortion and timewarp pass
+        # Since the compositor operates asynchronously, even if the app calls ovr_SubmitFrame too late,
+        # the compositor will kick off for each vsync.
+        ("CompositorFrameIndex", c_int), 
+        # Increments each time the SDK compositor fails to complete in time
+        # This is not tied to the app's performance, but failure to complete can be tied to other factors
+        # such as OS capabilities, overall available hardware cycles to execute the compositor in time
+        # and other factors outside of the app's control.
+        ("CompositorDroppedFrameCount", c_int), 
+        # Motion-to-photon latency of the SDK compositor in seconds
+        # This is the latency of timewarp which corrects the higher app latency as well as dropped app frames.
+        ("CompositorLatency", c_float), 
+        # The amount of time in seconds spent on the CPU by the SDK compositor. Unless the VR app is utilizing
+        # all of the CPU cores at their peak performance, there is a good chance the compositor CPU times
+        # will not affect the app's CPU performance in a major way.
+        ("CompositorCpuElapsedTime", c_float), 
+        # The amount of time in seconds spent on the GPU by the SDK compositor. Any time spent on the compositor
+        # will eat away from the available GPU time for the app.
+        ("CompositorGpuElapsedTime", c_float), 
+        # The amount of time in seconds spent from the point the CPU kicks off the compositor to the point in time
+        # the compositor completes the distortion & timewarp on the GPU. In the event the GPU time is not
+        # available, expect this value to be -1.0f
+        ("CompositorCpuStartToGpuEndElapsedTime", c_float), 
+        # The amount of time in seconds left after the compositor is done on the GPU to the associated V-Sync time.
+        # In the event the GPU time is not available, expect this value to be -1.0f
+        ("CompositorGpuEndToVsyncElapsedTime", c_float), 
+        #
+        # Async Spacewarp stats (ASW)
+        #
+        # Will be true is ASW is active for the given frame such that the application is being forced into
+        # half the frame-rate while the compositor continues to run at full frame-rate
+        ("AswIsActive", Bool), 
+        # Accumulates each time ASW it activated where the app was forced in and out of half-rate rendering
+        ("AswActivatedToggleCount", c_int), 
+        # Accumulates the number of frames presented by the compositor which had extrapolated ASW frames presented
+        ("AswPresentedFrameCount", c_int), 
+        # Accumulates the number of frames that the compositor tried to present when ASW is active but failed
+        ("AswFailedFrameCount", c_int), 
+    ]
+
+    def __repr__(self):
+        return "ovr.PerfStatsPerCompositorFrame(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)" % (self.HmdVsyncIndex, self.AppFrameIndex, self.AppDroppedFrameCount, self.AppMotionToPhotonLatency, self.AppQueueAheadTime, self.AppCpuElapsedTime, self.AppGpuElapsedTime, self.CompositorFrameIndex, self.CompositorDroppedFrameCount, self.CompositorLatency, self.CompositorCpuElapsedTime, self.CompositorGpuElapsedTime, self.CompositorCpuStartToGpuEndElapsedTime, self.CompositorGpuEndToVsyncElapsedTime, self.AswIsActive, self.AswActivatedToggleCount, self.AswPresentedFrameCount, self.AswFailedFrameCount)
+
+
+# Translated from header file OVR_CAPI.h line 2276
+#
+# Maximum number of frames of performance stats provided back to the caller of ovr_GetPerfStats
+#
+MaxProvidedFrameStats = 5
+
+
+# Translated from header file OVR_CAPI.h line 2281
+class PerfStats(Structure):
+    """
+    
+    This is a complete descriptor of the performance stats provided by the SDK
+    
+    
+    
+    \see ovr_GetPerfStats, ovrPerfStatsPerCompositorFrame
+    """
+    _pack_ = 4
+    _fields_ = [
+        # FrameStatsCount will have a maximum value set by ovrMaxProvidedFrameStats
+        # If the application calls ovr_GetPerfStats at the native refresh rate of the HMD
+        # then FrameStatsCount will be 1. If the app's workload happens to force
+        # ovr_GetPerfStats to be called at a lower rate, then FrameStatsCount will be 2 or more.
+        # If the app does not want to miss any performance data for any frame, it needs to
+        # ensure that it is calling ovr_SubmitFrame and ovr_GetPerfStats at a rate that is at least:
+        # "HMD_refresh_rate / ovrMaxProvidedFrameStats". On the Oculus Rift CV1 HMD, this will
+        # be equal to 18 times per second.
+        #
+        # The performance entries will be ordered in reverse chronological order such that the
+        # first entry will be the most recent one.
+        ("FrameStats", PerfStatsPerCompositorFrame * MaxProvidedFrameStats), 
+        ("FrameStatsCount", c_int), 
+        # If the app calls ovr_SubmitFrame at a rate less than 18 fps, then when calling
+        # ovr_GetPerfStats, expect AnyFrameStatsDropped to become ovrTrue while FrameStatsCount
+        # is equal to ovrMaxProvidedFrameStats.
+        ("AnyFrameStatsDropped", Bool), 
+        # AdaptiveGpuPerformanceScale is an edge-filtered value that a caller can use to adjust
+        # the graphics quality of the application to keep the GPU utilization in check. The value
+        # is calculated as: (desired_GPU_utilization / current_GPU_utilization)
+        # As such, when this value is 1.0, the GPU is doing the right amount of work for the app.
+        # Lower values mean the app needs to pull back on the GPU utilization.
+        # If the app is going to directly drive render-target resolution using this value, then
+        # be sure to take the square-root of the value before scaling the resolution with it.
+        # Changing render target resolutions however is one of the many things an app can do
+        # increase or decrease the amount of GPU utilization.
+        # Since AdaptiveGpuPerformanceScale is edge-filtered and does not change rapidly
+        # (i.e. reports non-1.0 values once every couple of seconds) the app can make the
+        # necessary adjustments and then keep watching the value to see if it has been satisfied.
+        ("AdaptiveGpuPerformanceScale", c_float), 
+        # Will be true if Async Spacewarp (ASW) is available for this system which is dependent on
+        # several factors such as choice of GPU, OS and debug overrides
+        ("AswIsAvailable", Bool), 
+    ]
+
+    def __repr__(self):
+        return "ovr.PerfStats(%s, %s, %s, %s, %s)" % (self.FrameStats, self.FrameStatsCount, self.AnyFrameStatsDropped, self.AdaptiveGpuPerformanceScale, self.AswIsAvailable)
+
+
+# Translated from header file OVR_CAPI.h line 2329
+libovr.ovr_GetPerfStats.restype = Result
+libovr.ovr_GetPerfStats.argtypes = [Session, POINTER(PerfStats)]
+def getPerfStats(session):
+    """
+    Retrieves performance stats for the VR app as well as the SDK compositor.
+    
+    If the app calling this function is not the one in focus (i.e. not visible in the HMD), then
+    outStats will be zero'd out.
+    New stats are populated after each successive call to ovr_SubmitFrame. So the app should call
+    this function on the same thread it calls ovr_SubmitFrame, preferably immediately
+    afterwards.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \param[out] outStats Contains the performance stats for the application and SDK compositor
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success.
+    
+    \see ovrPerfStats, ovrPerfStatsPerCompositorFrame, ovr_ResetPerfStats
+    """
+    outStats = PerfStats()
+    result = libovr.ovr_GetPerfStats(session, byref(outStats))
+    _checkResult(result, "getPerfStats")
+    return outStats
+
+
+# Translated from header file OVR_CAPI.h line 2346
+libovr.ovr_ResetPerfStats.restype = Result
+libovr.ovr_ResetPerfStats.argtypes = [Session]
+def resetPerfStats(session):
+    """
+    Resets the accumulated stats reported in each ovrPerfStatsPerCompositorFrame back to zero.
+    
+    Only the integer values such as HmdVsyncIndex, AppDroppedFrameCount etc. will be reset
+    as the other fields such as AppMotionToPhotonLatency are independent timing values updated
+    per-frame.
+    
+    \param[in] session Specifies an ovrSession previously returned by ovr_Create.
+    \return Returns an ovrResult for which OVR_SUCCESS(result) is false upon error and true
+            upon success.
+    
+    \see ovrPerfStats, ovrPerfStatsPerCompositorFrame, ovr_GetPerfStats
+    """
+    result = libovr.ovr_ResetPerfStats(session)
+    _checkResult(result, "resetPerfStats")
+    return result
+
+
+# Translated from header file OVR_CAPI.h line 2361
 libovr.ovr_GetPredictedDisplayTime.restype = c_double
 libovr.ovr_GetPredictedDisplayTime.argtypes = [Session, c_longlong]
 def getPredictedDisplayTime(session, frameIndex):
     """
     Gets the time of the specified frame midpoint.
     
-    Predicts the time at which the given frame will be displayed. The predicted time 
-    is the middle of the time period during which the corresponding eye images will 
-    be displayed. 
+    Predicts the time at which the given frame will be displayed. The predicted time
+    is the middle of the time period during which the corresponding eye images will
+    be displayed.
     
     The application should increment frameIndex for each successively targeted frame,
-    and pass that index to any relevent OVR functions that need to apply to the frame
+    and pass that index to any relevant OVR functions that need to apply to the frame
     identified by that index.
     
     This function is thread-safe and allows for multiple application threads to target
@@ -2179,14 +2884,14 @@ def getPredictedDisplayTime(session, frameIndex):
     \param[in] session Specifies an ovrSession previously returned by ovr_Create.
     \param[in] frameIndex Identifies the frame the caller wishes to target.
                A value of zero returns the next frame index.
-    \return Returns the absolute frame midpoint time for the given frameIndex. 
+    \return Returns the absolute frame midpoint time for the given frameIndex.
     \see ovr_GetTimeInSeconds
     """
     result = libovr.ovr_GetPredictedDisplayTime(session, frameIndex)
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1815
+# Translated from header file OVR_CAPI.h line 2386
 libovr.ovr_GetTimeInSeconds.restype = c_double
 def getTimeInSeconds():
     """
@@ -2202,7 +2907,7 @@ def getTimeInSeconds():
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1826
+# Translated from header file OVR_CAPI.h line 2398
 # Performance HUD enables the HMD user to see information critical to
 # the real-time operation of the VR application such as latency timing,
 # and CPU & GPU performance metrics
@@ -2210,7 +2915,7 @@ def getTimeInSeconds():
 #     App can toggle performance HUD modes as such:
 #     \code{.cpp}
 #         ovrPerfHudMode PerfHudMode = ovrPerfHud_LatencyTiming;
-#         ovr_SetInt(Hmd, OVR_PERF_HUD_MODE, (int)PerfHudMode);
+#         ovr_SetInt(session, OVR_PERF_HUD_MODE, (int)PerfHudMode);
 #     \endcode
 #
 PerfHudMode = ENUM_TYPE
@@ -2219,17 +2924,18 @@ PerfHud_PerfSummary        = 1  #< Shows performance summary and headroom
 PerfHud_LatencyTiming      = 2  #< Shows latency related timing info
 PerfHud_AppRenderTiming    = 3  #< Shows render timing info for application
 PerfHud_CompRenderTiming   = 4  #< Shows render timing info for OVR compositor
+PerfHud_AswStats           = 6  #< Shows Async Spacewarp-specific info
 PerfHud_VersionInfo        = 5  #< Shows SDK & HMD version Info
-PerfHud_Count              = 6  #< \internal Count of enumerated elements.
+PerfHud_Count              = 7  #< \internal Count of enumerated elements.
 
 
-# Translated from header file OVR_CAPI.h line 1848
+# Translated from header file OVR_CAPI.h line 2421
 # Layer HUD enables the HMD user to see information about a layer
 #
 #     App can toggle layer HUD modes as such:
 #     \code{.cpp}
 #         ovrLayerHudMode LayerHudMode = ovrLayerHud_Info;
-#         ovr_SetInt(Hmd, OVR_LAYER_HUD_MODE, (int)LayerHudMode);
+#         ovr_SetInt(session, OVR_LAYER_HUD_MODE, (int)LayerHudMode);
 #     \endcode
 #
 LayerHudMode = ENUM_TYPE
@@ -2237,9 +2943,9 @@ LayerHud_Off = 0 #< Turns off the layer HUD
 LayerHud_Info = 1 #< Shows info about a specific layer
 
 
-# Translated from header file OVR_CAPI.h line 1865
+# Translated from header file OVR_CAPI.h line 2438
 # Debug HUD is provided to help developers gauge and debug the fidelity of their app's
-# stereo rendering characteristics. Using the provided quad and crosshair guides, 
+# stereo rendering characteristics. Using the provided quad and crosshair guides,
 # the developer can verify various aspects such as VR tracking units (e.g. meters),
 # stereo camera-parallax properties (e.g. making sure objects at infinity are rendered
 # with the proper separation), measuring VR geometry sizes and distances and more.
@@ -2247,7 +2953,7 @@ LayerHud_Info = 1 #< Shows info about a specific layer
 #     App can toggle the debug HUD modes as such:
 #     \code{.cpp}
 #         ovrDebugHudStereoMode DebugHudMode = ovrDebugHudStereo_QuadWithCrosshair;
-#         ovr_SetInt(Hmd, OVR_DEBUG_HUD_STEREO_MODE, (int)DebugHudMode);
+#         ovr_SetInt(session, OVR_DEBUG_HUD_STEREO_MODE, (int)DebugHudMode);
 #     \endcode
 #
 # The app can modify the visual properties of the stereo guide (i.e. quad, crosshair)
@@ -2261,7 +2967,7 @@ DebugHudStereo_CrosshairAtInfinity = 3  #< Renders screen-space crosshair at inf
 DebugHudStereo_Count = DebugHudStereo_CrosshairAtInfinity + 1                    #< \internal Count of enumerated elements
 
 
-# Translated from header file OVR_CAPI.h line 1902
+# Translated from header file OVR_CAPI.h line 2475
 libovr.ovr_GetBool.restype = Bool
 libovr.ovr_GetBool.argtypes = [Session, c_char_p, Bool]
 def getBool(session, propertyName, defaultVal):
@@ -2278,7 +2984,7 @@ def getBool(session, propertyName, defaultVal):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1911
+# Translated from header file OVR_CAPI.h line 2484
 libovr.ovr_SetBool.restype = Bool
 libovr.ovr_SetBool.argtypes = [Session, c_char_p, Bool]
 def setBool(session, propertyName, value):
@@ -2296,7 +3002,7 @@ def setBool(session, propertyName, value):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1922
+# Translated from header file OVR_CAPI.h line 2495
 libovr.ovr_GetInt.restype = c_int
 libovr.ovr_GetInt.argtypes = [Session, c_char_p, c_int]
 def getInt(session, propertyName, defaultVal):
@@ -2313,7 +3019,7 @@ def getInt(session, propertyName, defaultVal):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1931
+# Translated from header file OVR_CAPI.h line 2504
 libovr.ovr_SetInt.restype = Bool
 libovr.ovr_SetInt.argtypes = [Session, c_char_p, c_int]
 def setInt(session, propertyName, value):
@@ -2332,7 +3038,7 @@ def setInt(session, propertyName, value):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1943
+# Translated from header file OVR_CAPI.h line 2516
 libovr.ovr_GetFloat.restype = c_float
 libovr.ovr_GetFloat.argtypes = [Session, c_char_p, c_float]
 def getFloat(session, propertyName, defaultVal):
@@ -2349,7 +3055,7 @@ def getFloat(session, propertyName, defaultVal):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1952
+# Translated from header file OVR_CAPI.h line 2525
 libovr.ovr_SetFloat.restype = Bool
 libovr.ovr_SetFloat.argtypes = [Session, c_char_p, c_float]
 def setFloat(session, propertyName, value):
@@ -2367,7 +3073,7 @@ def setFloat(session, propertyName, value):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1963
+# Translated from header file OVR_CAPI.h line 2536
 libovr.ovr_GetFloatArray.restype = c_uint
 libovr.ovr_GetFloatArray.argtypes = [Session, c_char_p, POINTER(c_float), c_uint]
 def getFloatArray(session, propertyName, values, valuesCapacity):
@@ -2384,7 +3090,7 @@ def getFloatArray(session, propertyName, values, valuesCapacity):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1973
+# Translated from header file OVR_CAPI.h line 2546
 libovr.ovr_SetFloatArray.restype = Bool
 libovr.ovr_SetFloatArray.argtypes = [Session, c_char_p, POINTER(c_float), c_uint]
 def setFloatArray(session, propertyName, values, valuesSize):
@@ -2402,7 +3108,7 @@ def setFloatArray(session, propertyName, values, valuesSize):
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1985
+# Translated from header file OVR_CAPI.h line 2558
 libovr.ovr_GetString.restype = c_char_p
 libovr.ovr_GetString.argtypes = [Session, c_char_p, c_char_p]
 def getString(session, propertyName, defaultVal):
@@ -2415,13 +3121,13 @@ def getString(session, propertyName, defaultVal):
     \param[in] defaultVal Specifes the value to return if the property couldn't be read.
     \return Returns the string property if it exists. Otherwise returns defaultVal, which can be specified as NULL.
             The return memory is guaranteed to be valid until next call to ovr_GetString or
-            until the HMD is destroyed, whichever occurs first.
+            until the session is destroyed, whichever occurs first.
     """
     result = libovr.ovr_GetString(session, propertyName, defaultVal)
     return result
 
 
-# Translated from header file OVR_CAPI.h line 1997
+# Translated from header file OVR_CAPI.h line 2570
 libovr.ovr_SetString.restype = Bool
 libovr.ovr_SetString.argtypes = [Session, c_char_p, c_char_p]
 def setString(session, propertyName, value):
@@ -2445,7 +3151,7 @@ def setString(session, propertyName, value):
 ### BEGIN Declarations from C header file OVR_CAPI_GL.h ###
 
 
-# Translated from header file OVR_CAPI_GL.h line 11
+# Translated from header file OVR_CAPI_GL.h line 13
 libovr.ovr_CreateTextureSwapChainGL.restype = Result
 libovr.ovr_CreateTextureSwapChainGL.argtypes = [Session, POINTER(TextureSwapChainDesc), POINTER(TextureSwapChain)]
 def createTextureSwapChainGL(session, desc):
@@ -2456,7 +3162,7 @@ def createTextureSwapChainGL(session, desc):
     \param[in]  desc Specifies the requested texture properties. See notes for more info about texture format.
     \param[out] out_TextureSwapChain Returns the created ovrTextureSwapChain, which will be valid upon
                 a successful return value, else it will be NULL. This texture swap chain must be eventually
-                destroyed via ovr_DestroyTextureSwapChain before destroying the HMD with ovr_Destroy.
+                destroyed via ovr_DestroyTextureSwapChain before destroying the session with ovr_Destroy.
     
     \return Returns an ovrResult indicating success or failure. In the case of failure, use 
             ovr_GetLastErrorInfo to get more information.
@@ -2482,7 +3188,7 @@ def createTextureSwapChainGL(session, desc):
     return out_TextureSwapChain
 
 
-# Translated from header file OVR_CAPI_GL.h line 41
+# Translated from header file OVR_CAPI_GL.h line 43
 libovr.ovr_GetTextureSwapChainBufferGL.restype = Result
 libovr.ovr_GetTextureSwapChainBufferGL.argtypes = [Session, TextureSwapChain, c_int, POINTER(c_uint)]
 def getTextureSwapChainBufferGL(session, chain, index):
@@ -2504,7 +3210,7 @@ def getTextureSwapChainBufferGL(session, chain, index):
     return out_TexId
 
 
-# Translated from header file OVR_CAPI_GL.h line 58
+# Translated from header file OVR_CAPI_GL.h line 60
 libovr.ovr_CreateMirrorTextureGL.restype = Result
 libovr.ovr_CreateMirrorTextureGL.argtypes = [Session, POINTER(MirrorTextureDesc), POINTER(MirrorTexture)]
 def createMirrorTextureGL(session, desc):
@@ -2517,7 +3223,7 @@ def createMirrorTextureGL(session, desc):
     \param[in]  session Specifies an ovrSession previously returned by ovr_Create.
     \param[in]  desc Specifies the requested mirror texture description.
     \param[out] out_MirrorTexture Specifies the created ovrMirrorTexture, which will be valid upon a successful return value, else it will be NULL.
-                This texture must be eventually destroyed via ovr_DestroyMirrorTexture before destroying the HMD with ovr_Destroy.
+                This texture must be eventually destroyed via ovr_DestroyMirrorTexture before destroying the session with ovr_Destroy.
     
     \return Returns an ovrResult indicating success or failure. In the case of failure, use 
             ovr_GetLastErrorInfo to get more information.
@@ -2537,7 +3243,7 @@ def createMirrorTextureGL(session, desc):
     return out_MirrorTexture
 
 
-# Translated from header file OVR_CAPI_GL.h line 84
+# Translated from header file OVR_CAPI_GL.h line 86
 libovr.ovr_GetMirrorTextureBufferGL.restype = Result
 libovr.ovr_GetMirrorTextureBufferGL.argtypes = [Session, MirrorTexture, POINTER(c_uint)]
 def getMirrorTextureBufferGL(session, mirrorTexture):
@@ -2617,6 +3323,50 @@ class DetectResult(Structure):
 
 
 # Translated from header file OVR_CAPI_Util.h line 75
+# Modes used to generate Touch Haptics from audio PCM buffer.
+#
+HapticsGenMode = ENUM_TYPE
+# Point sample original signal at Haptics frequency
+HapticsGenMode_PointSample = 0 
+HapticsGenMode_Count = HapticsGenMode_PointSample + 1 
+
+
+# Translated from header file OVR_CAPI_Util.h line 84
+class AudioChannelData(Structure):
+    """
+    Store audio PCM data (as 32b float samples) for an audio channel.
+    Note: needs to be released with ovr_ReleaseAudioChannelData to avoid memory leak.
+    """
+    _fields_ = [
+        # Samples stored as floats [-1.0f, 1.0f].
+        ("Samples", POINTER(c_float)), 
+        # Number of samples
+        ("SamplesCount", c_int), 
+        # Frequency (e.g. 44100)
+        ("Frequency", c_int), 
+    ]
+
+    def __repr__(self):
+        return "ovr.AudioChannelData(%s, %s, %s)" % (self.Samples, self.SamplesCount, self.Frequency)
+
+
+# Translated from header file OVR_CAPI_Util.h line 97
+class HapticsClip(Structure):
+    """
+    Store a full Haptics clip, which can be used as data source for multiple ovrHapticsBuffers.
+    """
+    _fields_ = [
+        # Samples stored in opaque format
+        ("Samples", c_void_p), 
+        # Number of samples
+        ("SamplesCount", c_int), 
+    ]
+
+    def __repr__(self):
+        return "ovr.HapticsClip(%s, %s)" % (self.Samples, self.SamplesCount)
+
+
+# Translated from header file OVR_CAPI_Util.h line 108
 libovr.ovr_Detect.restype = DetectResult
 libovr.ovr_Detect.argtypes = [c_int]
 def detect(timeoutMilliseconds):
@@ -2637,7 +3387,7 @@ def detect(timeoutMilliseconds):
     return result
 
 
-# Translated from header file OVR_CAPI_Util.h line 96
+# Translated from header file OVR_CAPI_Util.h line 129
 libovr.ovrMatrix4f_Projection.restype = Matrix4f
 libovr.ovrMatrix4f_Projection.argtypes = [FovPort, c_float, c_float, c_uint]
 def matrix4f_Projection(fov, znear, zfar, projectionModFlags):
@@ -2657,7 +3407,7 @@ def matrix4f_Projection(fov, znear, zfar, projectionModFlags):
     return result
 
 
-# Translated from header file OVR_CAPI_Util.h line 110
+# Translated from header file OVR_CAPI_Util.h line 143
 libovr.ovrTimewarpProjectionDesc_FromProjection.restype = TimewarpProjectionDesc
 libovr.ovrTimewarpProjectionDesc_FromProjection.argtypes = [Matrix4f, c_uint]
 def timewarpProjectionDesc_FromProjection(projection, projectionModFlags):
@@ -2673,7 +3423,7 @@ def timewarpProjectionDesc_FromProjection(projection, projectionModFlags):
     return result
 
 
-# Translated from header file OVR_CAPI_Util.h line 120
+# Translated from header file OVR_CAPI_Util.h line 153
 libovr.ovrMatrix4f_OrthoSubProjection.restype = Matrix4f
 libovr.ovrMatrix4f_OrthoSubProjection.argtypes = [Matrix4f, Vector2f, c_float, c_float]
 def matrix4f_OrthoSubProjection(projection, orthoScale, orthoDistance, HmdToEyeOffsetX):
@@ -2693,28 +3443,27 @@ def matrix4f_OrthoSubProjection(projection, orthoScale, orthoDistance, HmdToEyeO
     return result
 
 
-# Translated from header file OVR_CAPI_Util.h line 136
+# Translated from header file OVR_CAPI_Util.h line 169
 libovr.ovr_CalcEyePoses.restype = None
 libovr.ovr_CalcEyePoses.argtypes = [Posef, Vector3f * 2, Posef * 2]
-def calcEyePoses(headPose, HmdToEyeOffset, outEyePoses):
+def calcEyePoses(headPose, hmdToEyeOffset, outEyePoses):
     """
     Computes offset eye poses based on headPose returned by ovrTrackingState.
     
     \param[in] headPose Indicates the HMD position and orientation to use for the calculation.
-    \param[in] HmdToEyeOffset Can be ovrEyeRenderDesc.HmdToEyeOffset returned from 
+    \param[in] hmdToEyeOffset Can be ovrEyeRenderDesc.HmdToEyeOffset returned from
                ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average 
                of the two vectors for both eyes.
     \param[out] outEyePoses If outEyePoses are used for rendering, they should be passed to 
                 ovr_SubmitFrame in ovrLayerEyeFov::RenderPose or ovrLayerEyeFovDepth::RenderPose.
     """
-    result = libovr.ovr_CalcEyePoses(headPose, HmdToEyeOffset, outEyePoses)
-    return result
+    libovr.ovr_CalcEyePoses(headPose, hmdToEyeOffset, outEyePoses)
 
 
-# Translated from header file OVR_CAPI_Util.h line 150
+# Translated from header file OVR_CAPI_Util.h line 183
 libovr.ovr_GetEyePoses.restype = None
 libovr.ovr_GetEyePoses.argtypes = [Session, c_longlong, Bool, Vector3f * 2, Posef * 2, POINTER(c_double)]
-def getEyePoses(session, frameIndex, latencyMarker, HmdToEyeOffset, outEyePoses):
+def getEyePoses(session, frameIndex, latencyMarker, hmdToEyeOffset, outEyePoses):
     """
     Returns the predicted head pose in outHmdTrackingState and offset eye poses in outEyePoses.
     
@@ -2726,21 +3475,21 @@ def getEyePoses(session, frameIndex, latencyMarker, HmdToEyeOffset, outEyePoses)
     \param[in]  hmd Specifies an ovrSession previously returned by ovr_Create.
     \param[in]  frameIndex Specifies the targeted frame index, or 0 to refer to one frame after 
                 the last time ovr_SubmitFrame was called.
-    \param[in]  HmdToEyeOffset Can be ovrEyeRenderDesc.HmdToEyeOffset returned from 
-                ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average 
-                of the two vectors for both eyes.
     \param[in]  latencyMarker Specifies that this call is the point in time where
                 the "App-to-Mid-Photon" latency timer starts from. If a given ovrLayer
                 provides "SensorSampleTimestamp", that will override the value stored here.
+    \param[in]  hmdToEyeOffset Can be ovrEyeRenderDesc.HmdToEyeOffset returned from
+                ovr_GetRenderDesc. For monoscopic rendering, use a vector that is the average
+                of the two vectors for both eyes.
     \param[out] outEyePoses The predicted eye poses.
     \param[out] outSensorSampleTime The time when this function was called. May be NULL, in which case it is ignored.
     """
     outSensorSampleTime = c_double()
-    libovr.ovr_GetEyePoses(session, frameIndex, toOvrBool(latencyMarker), HmdToEyeOffset, outEyePoses, byref(outSensorSampleTime))
+    libovr.ovr_GetEyePoses(session, frameIndex, toOvrBool(latencyMarker), hmdToEyeOffset, outEyePoses, byref(outSensorSampleTime))
     return outSensorSampleTime
 
 
-# Translated from header file OVR_CAPI_Util.h line 176
+# Translated from header file OVR_CAPI_Util.h line 209
 libovr.ovrPosef_FlipHandedness.restype = None
 libovr.ovrPosef_FlipHandedness.argtypes = [POINTER(Posef), POINTER(Posef)]
 def posef_FlipHandedness(inPose):
@@ -2759,6 +3508,67 @@ def posef_FlipHandedness(inPose):
     outPose = Posef()
     libovr.ovrPosef_FlipHandedness(byref(inPose), byref(outPose))
     return outPose
+
+
+# Translated from header file OVR_CAPI_Util.h line 222
+libovr.ovr_ReadWavFromBuffer.restype = Result
+libovr.ovr_ReadWavFromBuffer.argtypes = [POINTER(AudioChannelData), c_void_p, c_int, c_int]
+def readWavFromBuffer(inputData, dataSizeInBytes, stereoChannelToUse):
+    """
+    Reads an audio channel from Wav (Waveform Audio File) data.
+    Input must be a byte buffer representing a valid Wav file. Audio samples from the specified channel are read,
+    converted to float [-1.0f, 1.0f] and returned through ovrAudioChannelData.
+    
+    Supported formats: PCM 8b, 16b, 32b and IEEE float (little-endian only).
+    
+    \param[out] outAudioChannel output audio channel data.
+    \param[in] inputData a binary buffer representing a valid Wav file data.
+    \param[in] dataSizeInBytes size of the buffer in bytes.
+    \param[in] stereoChannelToUse audio channel index to extract (0 for mono).
+    """
+    outAudioChannel = AudioChannelData()
+    result = libovr.ovr_ReadWavFromBuffer(byref(outAudioChannel), inputData, dataSizeInBytes, stereoChannelToUse)
+    _checkResult(result, "readWavFromBuffer")
+    return outAudioChannel
+
+
+# Translated from header file OVR_CAPI_Util.h line 235
+libovr.ovr_GenHapticsFromAudioData.restype = Result
+libovr.ovr_GenHapticsFromAudioData.argtypes = [POINTER(HapticsClip), POINTER(AudioChannelData), HapticsGenMode]
+def genHapticsFromAudioData(audioChannel, genMode):
+    """
+    Generates playable Touch Haptics data from an audio channel.
+    
+    \param[out] outHapticsClip generated Haptics clip.
+    \param[in] audioChannel input audio channel data. 
+    \param[in] genMode mode used to convert and audio channel data to Haptics data.
+    """
+    outHapticsClip = HapticsClip()
+    result = libovr.ovr_GenHapticsFromAudioData(byref(outHapticsClip), byref(audioChannel), genMode)
+    _checkResult(result, "genHapticsFromAudioData")
+    return outHapticsClip
+
+
+# Translated from header file OVR_CAPI_Util.h line 243
+libovr.ovr_ReleaseAudioChannelData.restype = None
+libovr.ovr_ReleaseAudioChannelData.argtypes = [POINTER(AudioChannelData)]
+def releaseAudioChannelData(audioChannel):
+    """
+    Releases memory allocated for ovrAudioChannelData. Must be called to avoid memory leak.
+    \param[in] audioChannel pointer to an audio channel
+    """
+    libovr.ovr_ReleaseAudioChannelData(byref(audioChannel))
+
+
+# Translated from header file OVR_CAPI_Util.h line 248
+libovr.ovr_ReleaseHapticsClip.restype = None
+libovr.ovr_ReleaseHapticsClip.argtypes = [POINTER(HapticsClip)]
+def releaseHapticsClip(hapticsClip):
+    """
+    Releases memory allocated for ovrHapticsClip. Must be called to avoid memory leak.
+    \param[in] hapticsClip pointer to a haptics clip
+    """
+    libovr.ovr_ReleaseHapticsClip(byref(hapticsClip))
 
 
 ### END Declarations from C header file OVR_CAPI_Util.h ###
