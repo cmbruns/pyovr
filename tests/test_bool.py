@@ -20,8 +20,8 @@ class TestProperties(unittest.TestCase):
         bt1 = True
         bf1 = False
         # B) OVR wrapped booleans
-        bt2 = ctypes.c_char(bytes([1]))
-        bf2 = ctypes.c_char(bytes([0]))
+        bt2 = ctypes.c_char(chr(1).encode('utf-8'))
+        bf2 = ctypes.c_char(chr(0).encode('utf-8'))
         # C) chr's, which might accidently get used sometimes
         # This is the most dangerous situation, because bool(chr(0)) == False
         bt3 = chr(1)
@@ -42,11 +42,11 @@ class TestProperties(unittest.TestCase):
     def test_convert(self):
         # Test my helper conversion function
         self.assertTrue(ovr.toOvrBool(True))
-        self.assertTrue(ovr.toOvrBool(chr(1)))
-        self.assertTrue(ovr.toOvrBool(ctypes.c_char(bytes([1]))))
+        self.assertTrue(ovr.toOvrBool(chr(1).encode('utf-8')))
+        self.assertTrue(ovr.toOvrBool(ctypes.c_char(chr(1).encode('utf-8'))))
         self.assertFalse(ovr.toOvrBool(False))
-        self.assertFalse(ovr.toOvrBool(chr(0))) # Tricky one!
-        self.assertFalse(ovr.toOvrBool(ctypes.c_char(bytes([0]))))
+        self.assertFalse(ovr.toOvrBool(chr(0).encode('utf-8'))) # Tricky one!
+        self.assertFalse(ovr.toOvrBool(ctypes.c_char(chr(0).encode('utf-8'))))
 
 
 if __name__ == '__main__':

@@ -75,12 +75,12 @@ def byref(obj):
     b = None if obj is None else ctypes.byref(obj)
     return b
 
-ovrFalse = c_char(bytes([0])) # note potential conflict with Python built in symbols
-ovrTrue = c_char(bytes([1]))
+ovrFalse = c_char(chr(0).encode('utf-8')) # note potential conflict with Python built in symbols
+ovrTrue = c_char(chr(1).encode('utf-8'))
 
 def toOvrBool(arg):
     # One tricky case:
-    if arg == chr(0):
+    if arg == chr(0).encode('utf-8'):
         return ovrFalse
     # Remainder are easy cases:
     if bool(arg):
