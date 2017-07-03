@@ -5,7 +5,7 @@
 
 ## Installation
 - [ ] Install Python 2.7 https://www.python.org/download/releases/2.7/ (32-bit version)
-- [ ] Install Oculus Rift Runtime 1.13.0 https://www.oculus.com/en-us/setup/
+- [ ] Install Oculus Rift Runtime 1.16.0 https://www.oculus.com/en-us/setup/
 - [ ] ``pip install ovr``
 
 If the above command fails, you might need to install `pip` http://stackoverflow.com/questions/4750806/how-to-install-pip-on-windows
@@ -42,9 +42,9 @@ See the Oculus developer documentation for more details about the OVR C API. htt
 For more information about how this Python API compares to the official C API, see our wiki at https://github.com/cmbruns/pyovr/wiki/Migrating-from-OVR-C-API-to-Python
 
 ## Details
-Runs on Windows only at the moment, but so does OVR SDK 1.13.0
+Runs on Windows only at the moment, but so does OVR SDK 1.16.0
 
-This python module uses the installed 32-bit OVR dll on Windows, so you must have the Oculus 1.13.0 Runtime installed to use this module. Get the Oculus Runtime at https://www.oculus.com/en-us/setup/
+This python module uses the installed 32-bit OVR dll on Windows, so you must have the Oculus 1.16.0 Runtime installed to use this module. Get the Oculus Runtime at https://www.oculus.com/en-us/setup/
 
 This module also assumes you are running a 32-bit version of python. In particular, it was developed and tested with 32-bit Python version 2.7 installed from https://www.python.org/downloads/release/python-2710/
 
