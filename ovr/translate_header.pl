@@ -427,7 +427,7 @@ sub process_functions {
             $trans .= "libovr.$fn_name.argtypes = [";
             my @args = split '\s*,\s*', $argument_list;
             foreach my $arg (@args) {
-                die $arg unless $arg =~ m/^
+                die $arg unless $arg =~ m/^\s*
                         ($type_rx)\s+
                         ($ident_rx)
                         (\[\d*\])?$/x;
@@ -874,7 +874,7 @@ sub process_enums {
 			my $symbol = $1;
 			my $value = $2;
 			$symbol =~ s/^ovr//;
-			print "Weird enum: $symbol = $value\n";
+			# print "Weird enum: $symbol = $value\n";
 			$trans .= "$symbol = $value\n";
 		}
 	    $by_pos->{$p} = $trans;
@@ -1008,7 +1008,7 @@ sub process_simple_typedefs {
     # "typedef int32_t ovrResult;"
     my $count1 = 0;
     # Look for typedefs with a semicolon on the same line
-    while ($code =~ m/(typedef[^\n\/()]*;)/g) {
+    while ($code =~ m/(\ntypedef[^\n\/()]*;)/g) {
         $count1 += 1;
     }
 
@@ -1041,7 +1041,7 @@ sub process_simple_typedefs {
     }
 
     # print "$count1 ($count2) simple typedefs found\n";
-    die unless $count1 == $count2;
+    die "$count1 $count2\n" unless $count1 == $count2;
 }
 
 sub translate_comment {
